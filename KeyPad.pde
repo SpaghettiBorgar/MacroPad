@@ -4,11 +4,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
-public final int PAGESIZE = 4;
+public static final int PAGESIZE = 4;
+public static final int TILESIZE = 80;
 
-Serial myPort;  // Create object from Serial class
-String val;      // Data received from the serial port
-
+Serial serialPort;
 ActionMatrix actions;
 boolean sw = false;
 ExecutorService threadpool = Executors.newCachedThreadPool();
@@ -69,11 +68,13 @@ public class TextAction extends Action
 	{
 		println("Typing: " + text);
 
-		int cursor = 0; //<>//
+		prepareText();
+
+		int cursor = 0;
 		int ei = 0;
 		while((ei = text.indexOf("%", cursor)) != -1)
 		{
-			if (cursor < ei) //<>//
+			if (cursor < ei)
 				type(text.substring(cursor, ei));
 			cursor = ei + 1;
 			if (text.charAt(cursor) == '%')
@@ -81,7 +82,7 @@ public class TextAction extends Action
 				type("%");
 				cursor++;
 			}
-			else // if(text.charAt(cursor) == '{')
+			else
 			{
 				ei = cursor;
 				while(ei < text.length())
@@ -252,15 +253,12 @@ public class ActionMatrix
 void setup()
 {
 	size(330, 370);
-	// map.put("A", "Hello World!");
-	// map.put("B", "meow");
-	// map.put("C", "\\begin{itemize}\r\\item\r\\end{itemize}");
-	// map.put("D", "nyaa~");
-
 	setupPages();
 
 	String portName = Serial.list()[0];
-	myPort = new Serial(this, "/dev/ttyUSB0", 9600);
+	println(portName);
+	portName = "/dev/ttyUSB0"; // tmp
+	serialPort = new Serial(this, portName, 9600);
 }
 
 void setupPages()
@@ -281,16 +279,32 @@ void setupPages()
 	actions.addAction(0, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
 }
 
+void execSync(String args[])
+{
+	try {
+		Runtime.getRuntime().exec(args).waitFor();
+	} catch(IOException | InterruptedException e) {
+		e.printStackTrace();
+	}
+}
+
+Future<?> execAsync(String args[])
+{
+	return threadpool.submit(()->execSync(args));
+}
+
+void prepareText() // stupid workaround for obscure bug
+{
+	execSync(new String[] {"xdotool", "key", "space"});
+	execSync(new String[] {"xdotool", "key", "BackSpace"});
+}
+
 void key(String keysym, int repeat)
 {
 	println("key " + keysym + " " + repeat);
 	while(repeat > 0)
 	{
-		try {
-			Runtime.getRuntime().exec(new String[] {"xdotool", "key", keysym}).waitFor();
-		} catch(IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
+		execSync(new String[] {"xdotool", "key", keysym});
 		repeat--;
 	}
 }
@@ -302,24 +316,14 @@ void key(String keysym)
 
 void type(String s)
 {
-	key("space");	// stupid workaround for obscure bug
-	key("BackSpace");
-	println("type " + s);
-	// for (char c : s.toCharArray())
-	// {
-	// 	key(String.valueOf(c));
-	// }
-	try {
-		Runtime.getRuntime().exec(new String[] {"xdotool", "type", s}).waitFor();
-	} catch(IOException | InterruptedException e) {
-		e.printStackTrace();
-	}
+	execSync(new String[] {"xdotool", "type", s});
 }
 
 void draw()
 {
-	if (myPort.available() > 0) {  // If data is available,
-		val = myPort.readStringUntil('\n').trim();         // read it and store it in val
+	if (serialPort.available() > 0) {
+		String val = serialPort.readStringUntil('\n').trim();
+		println(val);
 		switch(val.charAt(0))
 		{
 		case 'D':
@@ -378,8 +382,8 @@ void draw()
 
 void mousePressed()
 {
-	int i = mouseX / 80;
-	int j = mouseY / 80;
+	int i = mouseX / TILESIZE;
+	int j = mouseY / TILESIZE;
 	if (i >= PAGESIZE || j >= PAGESIZE)
 		return;
 
@@ -391,8 +395,8 @@ void mousePressed()
 
 void mouseReleased()
 {
-	int i = mouseX / 80;
-	int j = mouseY / 80;
+	int i = mouseX / TILESIZE;
+	int j = mouseY / TILESIZE;
 	if (i >= PAGESIZE || j >= PAGESIZE)
 		return;
 
