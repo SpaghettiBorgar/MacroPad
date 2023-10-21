@@ -11,8 +11,12 @@ String val;      // Data received from the serial port
 
 ActionMatrix actions;
 boolean sw = false;
-int page = 0;
 ExecutorService threadpool = Executors.newCachedThreadPool();
+
+public static int mod(int a, int b)
+{
+	return((a % b) + b) % b;
+}
 
 public abstract class Action
 {
@@ -107,7 +111,6 @@ public class TextAction extends Action
 	}
 }
 
-
 public static enum SpecialActionType
 {
 	NEXT_PAGE,
@@ -128,10 +131,13 @@ public class SpecialAction extends Action
 	{
 		switch(type)
 		{
-			case NEXT_PAGE:
-				page = (page + 1) % actions.numPages();
-				break;
-			default:
+		case NEXT_PAGE:
+			actions.nextPage();
+			break;
+		case PREV_PAGE:
+			actions.prevPage();
+			break;
+		default:
 			println("Unhandled SpecialActionType " + type);
 			break;
 		}
@@ -166,10 +172,11 @@ public class EmptyAction extends Action
 public class ActionMatrix
 {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
+	private int curPage;
 	
 	public ActionMatrix()
 	{
-		
+		curPage = 0;
 	}
 	
 	private void touchPage(int page)
@@ -194,17 +201,53 @@ public class ActionMatrix
 		return pages.get(page)[row][column];
 	}
 	
+	public Action getAction(int row, int column)
+	{
+		return getAction(curPage, row, column);
+	}
+
 	public void addAction(int page, int row, int column, Action action)
 	{
 		touchPage(page);
 		pages.get(page)[row][column] = action;
 	}
 	
+	void editAction(int row, int column)
+	{
+		ConfigureWindow window = new ConfigureWindow();
+	}
+
 	public int numPages()
 	{
 		return pages.size();
 	}
 	
+	public void goPage(int page)
+	{
+		if (page >= 0)
+			touchPage(page);
+		curPage = mod(page, numPages());
+	}
+
+	public void changePage(int n)
+	{
+		curPage = mod(curPage + n, numPages());
+	}
+
+	public void nextPage()
+	{
+		changePage(1);
+	}
+
+	public void prevPage()
+	{
+		changePage( -1);
+	}
+
+	public int curPage()
+	{
+		return curPage;
+	}
 }
 
 void setup()
@@ -224,19 +267,19 @@ void setup()
 void setupPages()
 {
 	actions = new ActionMatrix();
-	actions.addAction(1, 0, 0, new TextAction("test"));
-	actions.addAction(1, 0, 1, new TextAction("meow"));
-	actions.addAction(1, 0, 2, new TextAction("ABC", "abcdefghijklmnopqrstuvwxyz"));
-	actions.addAction(1, 0, 3, new SpecialAction(SpecialActionType.NEXT_PAGE));
-	actions.addAction(1, 1, 0, new TextAction("ε", "\\varepsilon "));
-	actions.addAction(1, 1, 1, new TextAction("δ", "\\delta "));
-	actions.addAction(1, 1, 3, new TextAction("*", "\\textasteriskcentered "));
-	actions.addAction(1, 2, 0, new TextAction("mathrm", "\\mathrm{} ", -2));
-	actions.addAction(1, 2, 1, new TextAction("text", "\\text{} ", -2));
-	actions.addAction(1, 2, 2, new TextAction("(", "\\left( "));
-	actions.addAction(1, 2, 3, new TextAction(")", "\\right) "));
-	actions.addAction(1, 3, 2, new TextAction("cases", "\\begin{cases}%Return%Return\\end{cases}%Up%End"));
-	actions.addAction(1, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
+	actions.addAction(0, 0, 0, new TextAction("test"));
+	actions.addAction(0, 0, 1, new TextAction("meow"));
+	actions.addAction(0, 0, 2, new TextAction("ABC", "abcdefghijklmnopqrstuvwxyz"));
+	actions.addAction(0, 0, 3, new SpecialAction(SpecialActionType.NEXT_PAGE));
+	actions.addAction(0, 1, 0, new TextAction("ε", "\\varepsilon "));
+	actions.addAction(0, 1, 1, new TextAction("δ", "\\delta "));
+	actions.addAction(0, 1, 3, new TextAction("*", "\\textasteriskcentered "));
+	actions.addAction(0, 2, 0, new TextAction("mathrm", "\\mathrm{} ", -2));
+	actions.addAction(0, 2, 1, new TextAction("text", "\\text{} ", -2));
+	actions.addAction(0, 2, 2, new TextAction("(", "\\left( "));
+	actions.addAction(0, 2, 3, new TextAction(")", "\\right) "));
+	actions.addAction(0, 3, 2, new TextAction("cases", "\\begin{cases}%Return%Return\\end{cases}%Up%End"));
+	actions.addAction(0, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
 }
 
 void key(String keysym, int repeat)
@@ -281,16 +324,16 @@ void draw()
 		switch(val.charAt(0))
 		{
 			case 'D':
-				actions.getAction(page, val.charAt(2) - '0', val.charAt(1) - '0').trigger();
+				actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
 				break;
 			case 'U':
-				actions.getAction(page, val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
+				actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
 				break;
 			case 'R':
-				page++;
+				actions.nextPage();
 				break;
 			case 'L':
-				page--;
+				actions.prevPage();
 				break;
 			case 'S':
 				switch(val.charAt(1))
@@ -313,7 +356,7 @@ void draw()
 	 {
 		for (int y = 0; y < 4; y++)
 		{
-			Action action = actions.getAction(page, y, x);
+			Action action = actions.getAction(y, x);
 			if (action.triggered)
 				fill(200, 160, 0);
 			else
@@ -331,7 +374,7 @@ void draw()
 		fill(80);
 	textSize(32);
 	textAlign(CENTER, CENTER);
-	text("Page " + page + "/5", 168, 344);
+	text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
 }
 
 void mousePressed()
@@ -342,9 +385,9 @@ void mousePressed()
 		return;
 	
 	if (mouseButton == LEFT)
-		actions.getAction(page, j, i).trigger();
+		actions.getAction(j, i).trigger();
 	else if (mouseButton == RIGHT)
-		edit(i, j);
+		actions.editAction(j, i);
 }
 
 void mouseReleased()
@@ -355,17 +398,7 @@ void mouseReleased()
 		return;
 	
 	if (mouseButton == LEFT)
-		actions.getAction(page, j, i).untrigger();
-}
-
-void edit(int i, int j)
-{
-	ConfigureWindow window = new ConfigureWindow();
-}
-
-void trigger(int page, int x, int y)
-{
-	
+		actions.getAction(j, i).untrigger();
 }
 
 class ConfigureWindow extends PApplet
@@ -373,6 +406,6 @@ class ConfigureWindow extends PApplet
 	public ConfigureWindow()
 	 {
 		super();
-		PApplet.runSketch(new String[]{this.getClass().getName()} , this); 
+		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
 }
