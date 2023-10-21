@@ -1,5 +1,8 @@
 import processing.serial.*;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -11,10 +14,41 @@ Serial serialPort;
 ActionMatrix actions;
 boolean sw = false;
 ExecutorService threadpool = Executors.newCachedThreadPool();
+LinkedList<TouchRect> clickZones;
 
 public static int mod(int a, int b)
 {
 	return((a % b) + b) % b;
+}
+
+public class TouchRect
+{
+	int x, y, w, h;
+	Runnable onClick, onRelease;
+	public TouchRect(int x, int y, int w, int h, Runnable onClick, Runnable onRelease)
+	{
+		this.x = x;
+		this.y = y;
+		this.w = w;
+		this.h = h;
+		this.onClick = onClick;
+		this.onRelease = onRelease;
+	}
+
+	public boolean touches(int mx, int my)
+	{
+		return mx >= this.x && mx < this.x + this.w && my >= this.y && my < this.y + this.h;
+	}
+
+	public void click()
+	{
+		this.onClick.run();
+	}
+
+	public void release()
+	{
+		this.onRelease.run();
+	}
 }
 
 public abstract class Action
@@ -259,6 +293,23 @@ void setup()
 	println(portName);
 	portName = "/dev/ttyUSB0"; // tmp
 	serialPort = new Serial(this, portName, 9600);
+	clickZones = new LinkedList<>();
+
+	for (int y = 0; y < PAGESIZE; y++)
+	{
+		for (int x = 0; x < PAGESIZE; x++)
+		{
+			final int frow = y, fcol = x;
+			clickZones.add(new TouchRect(10 + x * TILESIZE, 10 + y * TILESIZE, TILESIZE - 10, TILESIZE - 10,
+			() -> {
+				if(mouseButton == LEFT)
+					trigger(frow,fcol);
+				else
+					edit(frow, fcol);
+			},
+			() -> untrigger(frow,fcol)));
+		}
+	}
 }
 
 void setupPages()
@@ -380,28 +431,47 @@ void draw()
 	text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
 }
 
+void trigger(int row, int col)
+{
+	actions.getAction(row, col).trigger();
+}
+
+void untrigger(int row, int col)
+{
+	actions.getAction(row, col).untrigger();
+}
+
+void edit(int row, int col)
+{
+	actions.editAction(row, col);
+}
+
+TouchRect getTouchingRect()
+{
+	ListIterator<TouchRect> it = clickZones.listIterator(clickZones.size());
+	while(it.hasPrevious())
+	{
+		TouchRect rect = it.previous();
+		if (rect.touches(mouseX, mouseY))
+			return rect;
+	}
+	return null;
+}
+
 void mousePressed()
 {
-	int i = mouseX / TILESIZE;
-	int j = mouseY / TILESIZE;
-	if (i >= PAGESIZE || j >= PAGESIZE)
-		return;
+	TouchRect trect = getTouchingRect();
 
-	if (mouseButton == LEFT)
-		actions.getAction(j, i).trigger();
-	else if (mouseButton == RIGHT)
-		actions.editAction(j, i);
+	if (trect != null)
+		trect.click();
 }
 
 void mouseReleased()
 {
-	int i = mouseX / TILESIZE;
-	int j = mouseY / TILESIZE;
-	if (i >= PAGESIZE || j >= PAGESIZE)
-		return;
+	TouchRect trect = getTouchingRect();
 
-	if (mouseButton == LEFT)
-		actions.getAction(j, i).untrigger();
+	if (trect != null)
+		trect.release();
 }
 
 void mouseWheel(MouseEvent e)
