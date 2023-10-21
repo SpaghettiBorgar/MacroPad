@@ -404,6 +404,11 @@ void mouseReleased()
 		actions.getAction(j, i).untrigger();
 }
 
+void mouseWheel(MouseEvent e)
+{
+	actions.changePage(e.getCount());
+}
+
 class ConfigureWindow extends PApplet
 {
 	public ConfigureWindow()
