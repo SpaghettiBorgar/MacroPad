@@ -22,20 +22,20 @@ public abstract class Action
 {
 	boolean triggered;
 	String label;
-	
+
 	protected abstract void _trigger();
-	
+
 	public void trigger()
 	{
 		triggered = true;
 		threadpool.submit(() -> _trigger());
 	}
-	
+
 	public void untrigger()
 	{
 		triggered = false;
 	}
-	
+
 	public String getLabel()
 	{
 		return label == null ? "" : label;
@@ -46,29 +46,29 @@ public class TextAction extends Action
 {
 	private String text;
 	private int cursorShift;
-	
+
 	public TextAction(String label, String text, int cursorShift)
 	{
 		this.label = label;
 		this.text = text;
 		this.cursorShift = cursorShift;
 	}
-	
+
 	public TextAction(String label, String text)
 	{
 		this(label, text, 0);
 	}
-	
+
 	public TextAction(String text)
 	{
 		this(null, text, 0);
 	}
-	
+
 	@Override
 	void _trigger()
 	{
 		println("Typing: " + text);
-		
+
 		int cursor = 0; //<>//
 		int ei = 0;
 		while((ei = text.indexOf("%", cursor)) != -1)
@@ -98,12 +98,11 @@ public class TextAction extends Action
 		}
 		if (cursor < text.length())
 			type(text.substring(cursor));
-		
-		
+
 		if (cursorShift != 0)
 			key(cursorShift < 0 ? "Left" : "Right", Math.abs(cursorShift));
 	}
-	
+
 	@Override
 	public String getLabel()
 	{
@@ -120,12 +119,12 @@ public static enum SpecialActionType
 public class SpecialAction extends Action
 {
 	SpecialActionType type;
-	
+
 	public SpecialAction(SpecialActionType type)
 	{
 		this.type = type;
 	}
-	
+
 	@Override
 	void _trigger()
 	{
@@ -142,18 +141,18 @@ public class SpecialAction extends Action
 			break;
 		}
 	}
-	
+
 	@Override
 	String getLabel()
 	{
 		switch(type)
 		{
-			case NEXT_PAGE:
-				return "→";
-				case PREV_PAGE:
-				return "←";
-				default:
-				return "";
+		case NEXT_PAGE:
+			return "→";
+		case PREV_PAGE:
+			return "←";
+		default:
+			return "";
 		}
 	}
 }
@@ -162,9 +161,9 @@ public class EmptyAction extends Action
 {
 	public EmptyAction()
 	{
-		
+
 	}
-	
+
 	@Override
 	void _trigger() {}
 }
@@ -173,12 +172,12 @@ public class ActionMatrix
 {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
 	private int curPage;
-	
+
 	public ActionMatrix()
 	{
 		curPage = 0;
 	}
-	
+
 	private void touchPage(int page)
 	{
 		while(page >= pages.size())
@@ -194,13 +193,13 @@ public class ActionMatrix
 			pages.add(newPage);
 		}
 	}
-	
+
 	public Action getAction(int page, int row, int column)
 	{
 		touchPage(page);
 		return pages.get(page)[row][column];
 	}
-	
+
 	public Action getAction(int row, int column)
 	{
 		return getAction(curPage, row, column);
@@ -211,7 +210,7 @@ public class ActionMatrix
 		touchPage(page);
 		pages.get(page)[row][column] = action;
 	}
-	
+
 	void editAction(int row, int column)
 	{
 		ConfigureWindow window = new ConfigureWindow();
@@ -221,7 +220,7 @@ public class ActionMatrix
 	{
 		return pages.size();
 	}
-	
+
 	public void goPage(int page)
 	{
 		if (page >= 0)
@@ -257,9 +256,9 @@ void setup()
 	// map.put("B", "meow");
 	// map.put("C", "\\begin{itemize}\r\\item\r\\end{itemize}");
 	// map.put("D", "nyaa~");
-	
+
 	setupPages();
-	
+
 	String portName = Serial.list()[0];
 	myPort = new Serial(this, "/dev/ttyUSB0", 9600);
 }
@@ -287,7 +286,7 @@ void key(String keysym, int repeat)
 	println("key " + keysym + " " + repeat);
 	while(repeat > 0)
 	{
-		try{
+		try {
 			Runtime.getRuntime().exec(new String[] {"xdotool", "key", keysym}).waitFor();
 		} catch(IOException | InterruptedException e) {
 			e.printStackTrace();
@@ -310,7 +309,7 @@ void type(String s)
 	// {
 	// 	key(String.valueOf(c));
 	// }
-	try{
+	try {
 		Runtime.getRuntime().exec(new String[] {"xdotool", "type", s}).waitFor();
 	} catch(IOException | InterruptedException e) {
 		e.printStackTrace();
@@ -323,37 +322,37 @@ void draw()
 		val = myPort.readStringUntil('\n').trim();         // read it and store it in val
 		switch(val.charAt(0))
 		{
+		case 'D':
+			actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
+			break;
+		case 'U':
+			actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
+			break;
+		case 'R':
+			actions.nextPage();
+			break;
+		case 'L':
+			actions.prevPage();
+			break;
+		case 'S':
+			switch(val.charAt(1))
+			{
 			case 'D':
-				actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
+				sw = true;
 				break;
 			case 'U':
-				actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
+				sw = false;
 				break;
-			case 'R':
-				actions.nextPage();
-				break;
-			case 'L':
-				actions.prevPage();
-				break;
-			case 'S':
-				switch(val.charAt(1))
-				 {
-					case 'D':
-					sw = true;
-					break;
-				case 'U':
-					sw = false;
-					break;
 			}
 			break;
-			default:
+		default:
 			println("Unhandled opcode: " + val);
 		}
 	}
-	
+
 	background(220);
 	for (int x = 0; x < 4; x++)
-	 {
+	{
 		for (int y = 0; y < 4; y++)
 		{
 			Action action = actions.getAction(y, x);
@@ -383,7 +382,7 @@ void mousePressed()
 	int j = mouseY / 80;
 	if (i >= PAGESIZE || j >= PAGESIZE)
 		return;
-	
+
 	if (mouseButton == LEFT)
 		actions.getAction(j, i).trigger();
 	else if (mouseButton == RIGHT)
@@ -396,7 +395,7 @@ void mouseReleased()
 	int j = mouseY / 80;
 	if (i >= PAGESIZE || j >= PAGESIZE)
 		return;
-	
+
 	if (mouseButton == LEFT)
 		actions.getAction(j, i).untrigger();
 }
@@ -404,7 +403,7 @@ void mouseReleased()
 class ConfigureWindow extends PApplet
 {
 	public ConfigureWindow()
-	 {
+	{
 		super();
 		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
