@@ -14,7 +14,8 @@ Serial serialPort;
 ActionMatrix actions;
 boolean sw = false;
 ExecutorService threadpool = Executors.newCachedThreadPool();
-LinkedList<TouchRect> clickZones;
+UI ui;
+int mouseScroll;
 
 public class ActionMatrix
 {
@@ -97,53 +98,7 @@ public class ActionMatrix
 	}
 }
 
-void setup()
-{
-	size(330, 370);
-	setupPages();
-
-	String portName = Serial.list()[0];
-	println(portName);
-	portName = "/dev/ttyUSB0"; // tmp
-	serialPort = new Serial(this, portName, 9600);
-	clickZones = new LinkedList<>();
-
-	for (int y = 0; y < PAGESIZE; y++)
-	{
-		for (int x = 0; x < PAGESIZE; x++)
-		{
-			final int frow = y, fcol = x;
-			clickZones.add(new TouchRect(10 + x * TILESIZE, 10 + y * TILESIZE, TILESIZE - 10, TILESIZE - 10,
-			() -> {
-				if(mouseButton == LEFT)
-					trigger(frow,fcol);
-				else
-					edit(frow, fcol);
-			},
-			() -> untrigger(frow,fcol)));
-		}
-	}
-}
-
-void setupPages()
-{
-	actions = new ActionMatrix();
-	actions.addAction(0, 0, 0, new TextAction("test"));
-	actions.addAction(0, 0, 1, new TextAction("meow"));
-	actions.addAction(0, 0, 2, new TextAction("ABC", "abcdefghijklmnopqrstuvwxyz"));
-	actions.addAction(0, 0, 3, new SpecialAction(SpecialActionType.NEXT_PAGE));
-	actions.addAction(0, 1, 0, new TextAction("ε", "\\varepsilon "));
-	actions.addAction(0, 1, 1, new TextAction("δ", "\\delta "));
-	actions.addAction(0, 1, 3, new TextAction("*", "\\textasteriskcentered "));
-	actions.addAction(0, 2, 0, new TextAction("mathrm", "\\mathrm{} ", -2));
-	actions.addAction(0, 2, 1, new TextAction("text", "\\text{} ", -2));
-	actions.addAction(0, 2, 2, new TextAction("(", "\\left( "));
-	actions.addAction(0, 2, 3, new TextAction(")", "\\right) "));
-	actions.addAction(0, 3, 2, new TextAction("cases", "\\begin{cases}%Return%Return\\end{cases}%Up%End"));
-	actions.addAction(0, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
-}
-
-void draw()
+void readSerial()
 {
 	if (serialPort.available() > 0) {
 		String val = serialPort.readStringUntil('\n').trim();
@@ -177,31 +132,100 @@ void draw()
 			println("Unhandled opcode: " + val);
 		}
 	}
+}
 
-	background(220);
-	for (int x = 0; x < 4; x++)
+void setup()
+{
+	size(330, 370);
+	setupPages();
+	setupUI();
+
+	String portName = Serial.list()[0];
+	println(portName);
+	portName = "/dev/ttyUSB0"; // tmp
+	serialPort = new Serial(this, portName, 9600);
+
+}
+
+void setupPages()
+{
+	actions = new ActionMatrix();
+	actions.addAction(0, 0, 0, new TextAction("test"));
+	actions.addAction(0, 0, 1, new TextAction("meow"));
+	actions.addAction(0, 0, 2, new TextAction("ABC", "abcdefghijklmnopqrstuvwxyz"));
+	actions.addAction(0, 0, 3, new SpecialAction(SpecialActionType.NEXT_PAGE));
+	actions.addAction(0, 1, 0, new TextAction("ε", "\\varepsilon "));
+	actions.addAction(0, 1, 1, new TextAction("δ", "\\delta "));
+	actions.addAction(0, 1, 3, new TextAction("*", "\\textasteriskcentered "));
+	actions.addAction(0, 2, 0, new TextAction("mathrm", "\\mathrm{} ", -2));
+	actions.addAction(0, 2, 1, new TextAction("text", "\\text{} ", -2));
+	actions.addAction(0, 2, 2, new TextAction("(", "\\left( "));
+	actions.addAction(0, 2, 3, new TextAction(")", "\\right) "));
+	actions.addAction(0, 3, 2, new TextAction("cases", "\\begin{cases}%Return%Return\\end{cases}%Up%End"));
+	actions.addAction(0, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
+}
+
+void setupUI()
+{
+	ui = new UI();
+
+	ui.addElement(new UIElement(0, 0, width, height, ()-> {}, ()-> {}, ()-> {}, ()-> {actions.changePage(mouseScroll);}));
+
+	for (int j = 0; j < PAGESIZE; j++)
 	{
-		for (int y = 0; y < 4; y++)
+		for (int i = 0; i < PAGESIZE; i++)
 		{
-			Action action = actions.getAction(y, x);
-			if (action.triggered)
-				fill(200, 160, 0);
-			else
-				fill(120);
-			rect(x * 80 + 10, y * 80 + 10, 70, 70);
-			fill(20, 0, 0);
-			textSize(14);
-			textAlign(CENTER, CENTER);
-			text(action.getLabel(), x * 80 + 45, y * 80 + 45);
+			final int frow = j, fcol = i;
+			final Action action = actions.getAction(j, i);
+			final int x = i * TILESIZE + 10, y = j * TILESIZE + 10, w = TILESIZE - 10, h = TILESIZE - 10;
+
+			ui.addElement(new UIElement(x, y, w, h,
+			()-> {
+				if (action.triggered)
+					fill(200, 160, 0);
+				else
+					fill(120);
+				rect(x, y, w, h);
+				fill(20, 0, 0);
+				textSize(14);
+				textAlign(CENTER, CENTER);
+				text(action.getLabel(), x + 35, y + 35);
+			},
+			() -> {
+				if(mouseButton == LEFT)
+					action.trigger();
+				else if(mouseButton == RIGHT)
+					edit(frow, fcol);
+			},
+			() -> {
+				action.untrigger();
+			},
+			()-> {}));
 		}
 	}
-	if (sw)
-		fill(200, 160, 0);
-	else
-		fill(80);
-	textSize(32);
-	textAlign(CENTER, CENTER);
-	text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
+
+	ui.addElement(new UIElement(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40,
+	()-> {
+		if (sw)
+			fill(200, 160, 0);
+		else
+			fill(80);
+		textSize(32);
+		textAlign(CENTER, CENTER);
+		text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
+	},
+	()-> {},
+	()-> {},
+	()-> {}));
+}
+
+void draw()
+{
+	readSerial();
+
+	background(220);
+
+	ui.draw();
 }
 
 void trigger(int row, int col)
@@ -221,21 +245,15 @@ void edit(int row, int col)
 
 void mousePressed()
 {
-	TouchRect trect = getTouchingRect();
-
-	if (trect != null)
-		trect.click();
+	ui.click(mouseX, mouseY, mouseButton);
 }
 
 void mouseReleased()
 {
-	TouchRect trect = getTouchingRect();
-
-	if (trect != null)
-		trect.release();
+	ui.release(mouseX, mouseY, mouseButton);
 }
 
 void mouseWheel(MouseEvent e)
 {
-	actions.changePage(e.getCount());
+	ui.scroll(mouseX, mouseY, e.getCount());
 }
