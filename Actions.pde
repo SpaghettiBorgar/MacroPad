@@ -20,6 +20,19 @@ public abstract class Action
 	{
 		return label == null ? "" : label;
 	}
+
+	public JSONObject serializeJSON()
+	{
+		JSONObject json = new JSONObject();
+		json.setString("label", this.label);
+
+		return json;
+	}
+
+	public void deserializeJSON(JSONObject json)
+	{
+		this.label = json.getString("label");
+	}
 }
 
 public class TextAction extends Action
@@ -42,6 +55,11 @@ public class TextAction extends Action
 	public TextAction(String text)
 	{
 		this(null, text, 0);
+	}
+
+	public TextAction()
+	{
+
 	}
 
 	@Override
@@ -90,10 +108,31 @@ public class TextAction extends Action
 	{
 		return label == null ? text : label;
 	}
+
+	@Override
+	public JSONObject serializeJSON()
+	{
+		JSONObject json = super.serializeJSON();
+
+		json.setString("text", this.text);
+		json.setInt("cursorShift", this.cursorShift);
+
+		return json;
+	}
+
+	@Override
+	public void deserializeJSON(JSONObject json)
+	{
+		super.deserializeJSON(json);
+
+		this.text = json.getString("text");
+		this.cursorShift = json.getInt("cursorShift");
+	}
 }
 
 public static enum SpecialActionType
 {
+	INVALID,
 	NEXT_PAGE,
 	PREV_PAGE
 }
@@ -105,6 +144,11 @@ public class SpecialAction extends Action
 	public SpecialAction(SpecialActionType type)
 	{
 		this.type = type;
+	}
+
+	public SpecialAction()
+	{
+
 	}
 
 	@Override
@@ -136,6 +180,24 @@ public class SpecialAction extends Action
 		default:
 			return "";
 		}
+	}
+
+	@Override
+	public JSONObject serializeJSON()
+	{
+		JSONObject json = super.serializeJSON();
+
+		json.setString("specialType", this.type.name());
+
+		return json;
+	}
+
+	@Override
+	public void deserializeJSON(JSONObject json)
+	{
+		super.deserializeJSON(json);
+
+		this.type = SpecialActionType.valueOf(json.getString("specialType"));
 	}
 }
 

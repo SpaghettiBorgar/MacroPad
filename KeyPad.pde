@@ -150,19 +150,8 @@ void setup()
 void setupPages()
 {
 	actions = new ActionMatrix();
-	actions.addAction(0, 0, 0, new TextAction("test"));
-	actions.addAction(0, 0, 1, new TextAction("meow"));
-	actions.addAction(0, 0, 2, new TextAction("ABC", "abcdefghijklmnopqrstuvwxyz"));
-	actions.addAction(0, 0, 3, new SpecialAction(SpecialActionType.NEXT_PAGE));
-	actions.addAction(0, 1, 0, new TextAction("ε", "\\varepsilon "));
-	actions.addAction(0, 1, 1, new TextAction("δ", "\\delta "));
-	actions.addAction(0, 1, 3, new TextAction("*", "\\textasteriskcentered "));
-	actions.addAction(0, 2, 0, new TextAction("mathrm", "\\mathrm{} ", -2));
-	actions.addAction(0, 2, 1, new TextAction("text", "\\text{} ", -2));
-	actions.addAction(0, 2, 2, new TextAction("(", "\\left( "));
-	actions.addAction(0, 2, 3, new TextAction(")", "\\right) "));
-	actions.addAction(0, 3, 2, new TextAction("cases", "\\begin{cases}%Return%Return\\end{cases}%Up%End"));
-	actions.addAction(0, 3, 3, new TextAction("frac", "\\frac{}{}", -3));
+
+	restorePages();
 }
 
 void setupUI()
