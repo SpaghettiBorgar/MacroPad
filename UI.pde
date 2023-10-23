@@ -1,22 +1,57 @@
-public class UIElement
+public interface UIElement<T extends UIElement<T>>
+{
+	public boolean touches(int x, int y);
+	public T onDraw(Runnable onDraw);
+	public T onClick(Runnable onClick);
+	public T onRelease(Runnable onRelease);
+	public T onScroll(Runnable onScroll);
+	public void draw();
+	public void click();
+	public void release();
+	public void scroll();
+}
+
+public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>> implements UIElement<T>
 {
 	int x, y, w, h;
 	Runnable onDraw, onClick, onRelease, onScroll;
-	public UIElement(int x, int y, int w, int h, Runnable onDraw, Runnable onClick, Runnable onRelease, Runnable onScroll)
+
+	public AbstractUIBasicElement(int x, int y, int w, int h)
 	{
 		this.x = x;
 		this.y = y;
 		this.w = w;
 		this.h = h;
-		this.onDraw = onDraw;
-		this.onClick = onClick;
-		this.onRelease = onRelease;
-		this.onScroll = onScroll;
+		this.onDraw = this.onClick = this.onRelease = this.onScroll = () -> {};
 	}
 
 	public boolean touches(int mx, int my)
 	{
 		return mx >= this.x && mx < this.x + this.w && my >= this.y && my < this.y + this.h;
+	}
+
+	public T onDraw(Runnable onDraw)
+	{
+		this.onDraw = onDraw;
+		return (T) this;
+	}
+
+	public T onClick(Runnable onClick)
+	{
+		this.onClick = onClick;
+		return (T) this;
+	}
+
+	public T onRelease(Runnable onRelease)
+	{
+		this.onRelease = onRelease;
+		return (T) this;
+	}
+
+	public T onScroll(Runnable onScroll)
+	{
+		this.onScroll = onScroll;
+		return (T) this;
 	}
 
 	public void draw()
@@ -37,6 +72,42 @@ public class UIElement
 	public void scroll()
 	{
 		this.onScroll.run();
+	}
+}
+
+public class UIBasicElement extends AbstractUIBasicElement<UIBasicElement>
+{
+	public UIBasicElement(int x, int y, int w, int h)
+	{
+		super(x, y, w, h);
+	}
+}
+
+public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T>> extends AbstractUIBasicElement<T>
+{
+	String options[];
+	int selectedOption;
+	boolean expanded;
+	Runnable onSelect;
+
+	public AbstractUIDropdown(int x, int y, int w, int h)
+	{
+		super(x, y, w, h);
+	}
+
+	public T onSelect(Runnable onSelect)
+	{
+		this.onSelect = onSelect;
+		return (T) this;
+	}
+}
+
+public class UIDropdown extends AbstractUIDropdown<UIDropdown>
+{
+	public UIDropdown(int x, int y, int w, int h)
+	{
+		super(x, y, w, h);
+		this.expanded = false;
 	}
 }
 

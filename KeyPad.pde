@@ -158,7 +158,10 @@ void setupUI()
 {
 	ui = new UI();
 
-	ui.addElement(new UIElement(0, 0, width, height, ()-> {}, ()-> {}, ()-> {}, ()-> {actions.changePage(mouseScroll);}));
+	ui.addElement(new UIBasicElement(0, 0, width, height)
+	.onScroll(()-> {
+		actions.changePage(mouseScroll);
+	}));
 
 	for (int j = 0; j < PAGESIZE; j++)
 	{
@@ -168,8 +171,8 @@ void setupUI()
 			final Action action = actions.getAction(j, i);
 			final int x = i * TILESIZE + 10, y = j * TILESIZE + 10, w = TILESIZE - 10, h = TILESIZE - 10;
 
-			ui.addElement(new UIElement(x, y, w, h,
-			()-> {
+			ui.addElement(new UIBasicElement(x, y, w, h)
+			.onDraw(()-> {
 				if (action.triggered)
 					fill(200, 160, 0);
 				else
@@ -179,22 +182,21 @@ void setupUI()
 				textSize(14);
 				textAlign(CENTER, CENTER);
 				text(action.getLabel(), x + 35, y + 35);
-			},
-			() -> {
+			})
+			.onClick(() -> {
 				if(mouseButton == LEFT)
 					action.trigger();
 				else if(mouseButton == RIGHT)
 					edit(frow, fcol);
-			},
-			() -> {
+			})
+			.onRelease(() -> {
 				action.untrigger();
-			},
-			()-> {}));
+			}));
 		}
 	}
 
-	ui.addElement(new UIElement(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40,
-	()-> {
+	ui.addElement(new UIBasicElement(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
+	.onDraw(()-> {
 		if (sw)
 			fill(200, 160, 0);
 		else
@@ -202,10 +204,7 @@ void setupUI()
 		textSize(32);
 		textAlign(CENTER, CENTER);
 		text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
-	},
-	()-> {},
-	()-> {},
-	()-> {}));
+	}));
 }
 
 void draw()
