@@ -1,5 +1,6 @@
 import processing.serial.*;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -17,25 +18,19 @@ ExecutorService threadpool = Executors.newCachedThreadPool();
 UI ui;
 int mouseScroll;
 
-public class ActionMatrix
-{
+public class ActionMatrix {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
 	private int curPage;
 
-	public ActionMatrix()
-	{
+	public ActionMatrix() {
 		curPage = 0;
 	}
 
-	private void touchPage(int page)
-	{
-		while(page >= pages.size())
-		{
+	private void touchPage(int page) {
+		while(page >= pages.size()) {
 			Action newPage[][] = new Action[PAGESIZE][PAGESIZE];
-			for (int y = 0; y < PAGESIZE; y++)
-			{
-				for (int x = 0; x < PAGESIZE; x++)
-				{
+			for (int y = 0; y < PAGESIZE; y++) {
+				for (int x = 0; x < PAGESIZE; x++) {
 					newPage[y][x] = new EmptyAction();
 				}
 			}
@@ -43,68 +38,56 @@ public class ActionMatrix
 		}
 	}
 
-	public Action getAction(int page, int row, int column)
-	{
+	public Action getAction(int page, int row, int column) {
 		touchPage(page);
 		return pages.get(page)[row][column];
 	}
 
-	public Action getAction(int row, int column)
-	{
+	public Action getAction(int row, int column) {
 		return getAction(curPage, row, column);
 	}
 
-	public void addAction(int page, int row, int column, Action action)
-	{
+	public void addAction(int page, int row, int column, Action action) {
 		touchPage(page);
 		pages.get(page)[row][column] = action;
 	}
 
-	void editAction(int row, int column)
-	{
+	void editAction(int row, int column) {
 		ConfigureWindow window = new ConfigureWindow();
 	}
 
-	public int numPages()
-	{
+	public int numPages() {
 		return pages.size();
 	}
 
-	public void goPage(int page)
-	{
+	public void goPage(int page) {
 		if (page >= 0)
 			touchPage(page);
 		curPage = mod(page, numPages());
 	}
 
-	public void changePage(int n)
-	{
+	public void changePage(int n) {
 		curPage = mod(curPage + n, numPages());
 	}
 
-	public void nextPage()
-	{
+	public void nextPage() {
 		changePage(1);
 	}
 
-	public void prevPage()
-	{
+	public void prevPage() {
 		changePage( -1);
 	}
 
-	public int curPage()
-	{
+	public int curPage() {
 		return curPage;
 	}
 }
 
-void readSerial()
-{
+void readSerial() {
 	if (serialPort.available() > 0) {
 		String val = serialPort.readStringUntil('\n').trim();
 		println(val);
-		switch(val.charAt(0))
-		{
+		switch(val.charAt(0)) {
 		case 'D':
 			actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
 			break;
@@ -118,8 +101,7 @@ void readSerial()
 			actions.prevPage();
 			break;
 		case 'S':
-			switch(val.charAt(1))
-			{
+			switch(val.charAt(1)) {
 			case 'D':
 				sw = true;
 				break;
@@ -134,8 +116,7 @@ void readSerial()
 	}
 }
 
-void setup()
-{
+void setup() {
 	size(330, 370);
 	setupPages();
 	setupUI();
@@ -144,34 +125,29 @@ void setup()
 	println(portName);
 	portName = "/dev/ttyUSB0"; // tmp
 	serialPort = new Serial(this, portName, 9600);
-
 }
 
-void setupPages()
-{
+void setupPages() {
 	actions = new ActionMatrix();
 
 	restorePages();
 }
 
-void setupUI()
-{
+void setupUI() {
 	ui = new UI();
 
-	ui.addElement(new UIBasicElement(0, 0, width, height)
+	ui.addElement(new UIBasicElement(this, 0, 0, width, height)
 	.onScroll(()-> {
 		actions.changePage(mouseScroll);
 	}));
 
-	for (int j = 0; j < PAGESIZE; j++)
-	{
-		for (int i = 0; i < PAGESIZE; i++)
-		{
+	for (int j = 0; j < PAGESIZE; j++) {
+		for (int i = 0; i < PAGESIZE; i++) {
 			final int frow = j, fcol = i;
 			final Action action = actions.getAction(j, i);
 			final int x = i * TILESIZE + 10, y = j * TILESIZE + 10, w = TILESIZE - 10, h = TILESIZE - 10;
 
-			ui.addElement(new UIBasicElement(x, y, w, h)
+			ui.addElement(new UIBasicElement(this, x, y, w, h)
 			.onDraw(()-> {
 				if (action.triggered)
 					fill(200, 160, 0);
@@ -195,7 +171,7 @@ void setupUI()
 		}
 	}
 
-	ui.addElement(new UIBasicElement(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
+	ui.addElement(new UIBasicElement(this, 0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
 	.onDraw(()-> {
 		if (sw)
 			fill(200, 160, 0);
@@ -207,8 +183,7 @@ void setupUI()
 	}));
 }
 
-void draw()
-{
+void draw() {
 	readSerial();
 
 	background(220);
@@ -216,32 +191,26 @@ void draw()
 	ui.draw();
 }
 
-void trigger(int row, int col)
-{
+void trigger(int row, int col) {
 	actions.getAction(row, col).trigger();
 }
 
-void untrigger(int row, int col)
-{
+void untrigger(int row, int col) {
 	actions.getAction(row, col).untrigger();
 }
 
-void edit(int row, int col)
-{
+void edit(int row, int col) {
 	actions.editAction(row, col);
 }
 
-void mousePressed()
-{
+void mousePressed() {
 	ui.click(mouseX, mouseY, mouseButton);
 }
 
-void mouseReleased()
-{
+void mouseReleased() {
 	ui.release(mouseX, mouseY, mouseButton);
 }
 
-void mouseWheel(MouseEvent e)
-{
+void mouseWheel(MouseEvent e) {
 	ui.scroll(mouseX, mouseY, e.getCount());
 }
