@@ -1,9 +1,13 @@
 import processing.serial.*;
 import java.util.Map;
+import java.util.Stack;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.LinkedHashMap;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +57,7 @@ public class ActionMatrix {
 	}
 
 	void editAction(int row, int column) {
-		ConfigureWindow window = new ConfigureWindow();
+		ConfigureWindow window = new ConfigureWindow(getAction(row, column), curPage, row, column);
 	}
 
 	public int numPages() {
@@ -134,9 +138,10 @@ void setupPages() {
 }
 
 void setupUI() {
-	ui = new UI();
+	ui = new UI(this);
 
-	ui.addElement(new UIBasicElement(this, 0, 0, width, height)
+	ui.addElement(new UIBasicElement(this)
+	.xywh(0, 0, width, height)
 	.onScroll(()-> {
 		actions.changePage(mouseScroll);
 	}));
@@ -147,7 +152,8 @@ void setupUI() {
 			final Action action = actions.getAction(j, i);
 			final int x = i * TILESIZE + 10, y = j * TILESIZE + 10, w = TILESIZE - 10, h = TILESIZE - 10;
 
-			ui.addElement(new UIBasicElement(this, x, y, w, h)
+			ui.addElement(new UIBasicElement(this)
+			.xywh(x, y, w, h)
 			.onDraw(()-> {
 				if (action.triggered)
 					fill(200, 160, 0);
@@ -171,7 +177,8 @@ void setupUI() {
 		}
 	}
 
-	ui.addElement(new UIBasicElement(this, 0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
+	ui.addElement(new UIBasicElement(this)
+	.xywh(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
 	.onDraw(()-> {
 		if (sw)
 			fill(200, 160, 0);
@@ -185,8 +192,6 @@ void setupUI() {
 
 void draw() {
 	readSerial();
-
-	background(220);
 
 	ui.draw();
 }

@@ -1,5 +1,16 @@
-public abstract class Action {
-	boolean triggered;
+public interface IReflectProperties {
+	public LinkedHashMap<String, Class<?>> getProperties();
+	public <T> T getProperty(String name);
+	public <T> void setProperty(String name, T value);
+}
+
+public interface ISerializeJSON {
+	public JSONObject serializeJSON();
+	public void deserializeJSON(JSONObject json);
+}
+
+public abstract class Action implements IReflectProperties, ISerializeJSON {
+	transient boolean triggered;
 	String label;
 
 	protected abstract void _trigger();
@@ -17,6 +28,7 @@ public abstract class Action {
 		return label == null ? "" : label;
 	}
 
+	@Override
 	public JSONObject serializeJSON() {
 		JSONObject json = new JSONObject();
 		json.setString("label", this.label);
@@ -24,14 +36,70 @@ public abstract class Action {
 		return json;
 	}
 
+	@Override
 	public void deserializeJSON(JSONObject json) {
 		this.label = json.getString("label");
+	}
+
+	@Override
+	public LinkedHashMap<String, Class<?>> getProperties() {
+		Stack<Class<?>> classStack = new Stack<>();
+		classStack.push(this.getClass());
+		while(classStack.peek() != Action.class) {
+			classStack.push(classStack.peek().getSuperclass());
+		}
+		LinkedHashMap<String, Class<?>> list = new LinkedHashMap<>();
+		while(!classStack.isEmpty()) {
+			Class<?> clazz = classStack.pop();
+			for (Field field : clazz.getDeclaredFields()) {
+				if(!field.isSynthetic() && !Modifier.isTransient(field.getModifiers())) {
+					list.put(field.getName(), field.getType());
+				}
+			}
+		}
+		return list;
+	}
+
+	private Field getField(String name) throws NoSuchFieldException {
+		Stack<Class<?>> classStack = new Stack<>();
+		classStack.push(this.getClass());
+		while(classStack.peek() != Action.class) {
+			classStack.push(classStack.peek().getSuperclass());
+		}
+		while(!classStack.isEmpty()) {
+			Class<?> clazz = classStack.pop();
+			try {
+				return clazz.getDeclaredField(name);
+			} catch (NoSuchFieldException e) {
+				continue;
+			}
+		}
+		throw new NoSuchFieldException();
+	}
+
+	@Override
+	public <T> T getProperty(String name) {
+		try {
+			return (T) getField(name).get(this);
+		} catch(NoSuchFieldException | IllegalAccessException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	@Override
+	public <T> void setProperty(String name, T value) {
+		try {
+			getField(name).set(this, value);
+		} catch(NoSuchFieldException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
 	}
 }
 
 public class TextAction extends Action {
-	private String text;
-	private int cursorShift;
+	String text;
+	int cursorShift;
 
 	public TextAction(String label, String text, int cursorShift) {
 		this.label = label;
@@ -89,6 +157,10 @@ public class TextAction extends Action {
 	@Override
 	public String getLabel() {
 		return label == null ? text : label;
+	}
+
+	public String getText() {
+		return text;
 	}
 
 	@Override

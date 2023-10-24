@@ -1,8 +1,14 @@
 class ConfigureWindow extends PApplet {
 	private UI ui;
-	boolean clicked = false;
-	public ConfigureWindow() {
+	Action action;
+	int page, row, col;
+
+	public ConfigureWindow(Action action, int page, int row, int col) {
 		super();
+		this.action = action;
+		this.page = page;
+		this.row = row;
+		this.col = col;
 		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
 
@@ -15,19 +21,89 @@ class ConfigureWindow extends PApplet {
 	}
 
 	void setupUI() {
-		ui = new UI();
+		ui = new UI(this);
 
-		ui.addElement(new UIDropdown(this, 0, 0, 100, 20)
-		.addOptions("foo", "bar", "meow")
-		.onClick(()-> {
-			clicked = true;
-			println("click");
-		}));
+		UI.FormBuilder fb = ui.new FormBuilder();
+		UITextField actionLabel = new UITextField(this, 100, 1)
+		.placeholder("<empty>")
+		.value(action.label);
+		fb
+		.addRight(new UILabel(this, "Label"))
+		.addRight(8, actionLabel)
+		.addRow();
+		UIDropdown<Class<? extends Action>> actionType = new UIDropdown<Class<? extends Action>>(this)
+		.addOptions(EmptyAction.class, SpecialAction.class, TextAction.class)
+		.value(action.getClass());
+		fb
+		.addRight(new UILabel(this, "Action Type"))
+		.addRight(8, actionType)
+		.addRow(16);
+
+		LinkedHashMap<String, Class<?>> props = action.getProperties();
+
+		HashMap<String, HoldsValue> propElems = new HashMap<>();
+		propElems.put("label", actionLabel);
+
+		for(String prop : props.keySet()) {
+			if(prop == "label")
+				continue;
+			Class<?> type = props.get(prop);
+			HoldsValue e;
+			if (type == String.class) {
+				e = new UITextField(this, 200, 4)
+				.value(action.getProperty(prop))
+				.placeholder(prop);
+				propElems.put(prop, e);
+				fb
+				.addRight(new UILabel(this, prop))
+				.addRow();
+			} else if(type.equals(Integer.TYPE)) {
+				e = new UINumberInput(this)
+				.value(action.getProperty(prop));
+				fb
+				.addRight(new UILabel(this, prop));
+			} else if(type.isEnum()) {
+				Class<? extends Enum<?>> etype = (Class<? extends Enum<?>>) type;
+				e = new UIDropdown<Enum>(this)
+				.addOptions(etype.getEnumConstants());
+				fb
+				.addRight(new UILabel(this, prop));
+			} else {
+				println("Unimplemented property type " + type);
+				continue;
+			}
+			propElems.put(prop, e);
+			fb.addRight(8, (UIElement) e);
+			fb.addRow();
+		}
+		fb
+		.addRow(8)
+		.addRight(new UIButton(this)
+		.wh(60, 20)
+		.label("Cancel")
+		.onRelease(()-> {
+			this.dispose();
+		}))
+		.addRight(new UIButton(this)
+		.wh(40, 20)
+		.label("OK")
+		.onRelease(()-> {
+			try {
+				action = actionType.value().getConstructor(KeyPad.class).newInstance(KeyPad.this);
+				for (String prop : propElems.keySet()) {
+					action.setProperty(prop, propElems.get(prop).value());
+					println(prop, action.getProperty(prop));
+				}
+				actions.addAction(page, row, col, action);
+				this.dispose();
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		}))
+		.addRow();
 	}
 
 	void draw() {
-		this.fill(255, 0, 0);
-		this.rect(20, 20, 30, 30);
 		ui.draw();
 	}
 
@@ -40,6 +116,6 @@ class ConfigureWindow extends PApplet {
 	}
 
 	void mouseWheel(MouseEvent e) {
-
+		ui.scroll(mouseX, mouseY, e.getCount());
 	}
 }
