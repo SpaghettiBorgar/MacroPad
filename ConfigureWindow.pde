@@ -22,25 +22,22 @@ class ConfigureWindow extends PApplet {
 
 	void setupUI() {
 		ui = new UI(this);
-
 		UI.FormBuilder fb = ui.new FormBuilder();
+
 		UITextField actionLabel = new UITextField(this, 100, 1)
 		.placeholder("<empty>")
 		.value(action.label);
-		fb
-		.addRight(new UILabel(this, "Label"))
-		.addRight(8, actionLabel)
+		fb.addRight(new UILabel(this, "Label"))
+		.addRight(actionLabel)
 		.addRow();
 		UIDropdown<Class<? extends Action>> actionType = new UIDropdown<Class<? extends Action>>(this)
-		.addOptions(EmptyAction.class, SpecialAction.class, TextAction.class)
+		.addOptions((Class<? extends Action>[]) ACTION_CLASSES)
 		.value(action.getClass());
-		fb
-		.addRight(new UILabel(this, "Action Type"))
-		.addRight(8, actionType)
+		fb.addRight(new UILabel(this, "Action Type"))
+		.addRight(actionType)
 		.addRow(16);
 
 		LinkedHashMap<String, Class<?>> props = action.getProperties();
-
 		HashMap<String, HoldsValue> propElems = new HashMap<>();
 		propElems.put("label", actionLabel);
 
@@ -54,20 +51,17 @@ class ConfigureWindow extends PApplet {
 				.value(action.getProperty(prop))
 				.placeholder(prop);
 				propElems.put(prop, e);
-				fb
-				.addRight(new UILabel(this, prop))
+				fb.addRight(new UILabel(this, prop))
 				.addRow();
 			} else if(type.equals(Integer.TYPE)) {
 				e = new UINumberInput(this)
 				.value(action.getProperty(prop));
-				fb
-				.addRight(new UILabel(this, prop));
+				fb.addRight(new UILabel(this, prop));
 			} else if(type.isEnum()) {
 				Class<? extends Enum<?>> etype = (Class<? extends Enum<?>>) type;
 				e = new UIDropdown<Enum>(this)
 				.addOptions(etype.getEnumConstants());
-				fb
-				.addRight(new UILabel(this, prop));
+				fb.addRight(new UILabel(this, prop));
 			} else {
 				println("Unimplemented property type " + type);
 				continue;
@@ -76,15 +70,14 @@ class ConfigureWindow extends PApplet {
 			fb.addRight(8, (UIElement) e);
 			fb.addRow();
 		}
-		fb
-		.addRow(8)
+		fb.addRow(8)
 		.addRight(new UIButton(this)
 		.wh(60, 20)
 		.label("Cancel")
 		.onRelease(()-> {
 			this.dispose();
 		}))
-		.addRight(new UIButton(this)
+		.addRight(0, new UIButton(this)
 		.wh(40, 20)
 		.label("OK")
 		.onRelease(()-> {

@@ -237,7 +237,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		ctx.fill(0, 0, 0);
 		ctx.textSize(16);
 		ctx.textAlign(LEFT, CENTER);
-		ctx.text(options.isEmpty() ? "—" : String.valueOf(options.get(selectedOption)), this.x + 2, this.y + this.h / 2);
+		ctx.text(options.isEmpty() ? "—" : makeString(options.get(selectedOption)), this.x + 2, this.y + this.h / 2);
 	}
 
 	private void _onClick() {
@@ -276,6 +276,14 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		return options.isEmpty() ? null : options.get(selectedOption);
 	}
 
+	private String makeString(E item) {
+		if (item.getClass() == Class.class) {
+			return ((Class<?>) item).getSimpleName();
+		} else {
+			return String.valueOf(item);
+		}
+	}
+
 	private class UIDropdownExpanded extends AbstractUIBasicElement<UIDropdownExpanded> {
 		public UIDropdownExpanded() {
 			super(AbstractUIDropdown.this.ctx);
@@ -286,12 +294,11 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		}
 		private void _onDraw() {
 			for(int i = 0; i < options.size(); i++) {
-				String opt = String.valueOf(options.get(i));
 				ctx.fill(180 + 20 * (i % 2));
 				ctx.rect(this.x, this.y + 20 * i, this.w, 20);
 				ctx.fill(0);
 				ctx.textAlign(LEFT, CENTER);
-				ctx.text(opt, this.x + 2, this.y + 20 * i + 10);
+				ctx.text(makeString(options.get(i)), this.x + 2, this.y + 20 * i + 10);
 			}
 		}
 		private void _onClick() {
@@ -370,6 +377,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int textSize;
 	int lines;
 	int textAlignX;
+	int cursorPos;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
 		super(ctx);
@@ -378,6 +386,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.lines = lines;
 		this.placeholder = "";
 		this.onDraw = () -> {this._onDraw();};
+		this.cursorPos = -1;
 	}
 
 	private void _onDraw() {
@@ -686,7 +695,7 @@ public class UI {
 		}
 
 		public FormBuilder addRight(UIElement element) {
-			return addRight(0, element);
+			return addRight(currentRow.isEmpty() ? 0 : 8, element);
 		}
 	}
 }

@@ -1,3 +1,5 @@
+public static final Class<?> ACTION_CLASSES[] = {EmptyAction.class, TextAction.class, SpecialAction.class};
+
 public interface IReflectProperties {
 	public LinkedHashMap<String, Class<?>> getProperties();
 	public <T> T getProperty(String name);
