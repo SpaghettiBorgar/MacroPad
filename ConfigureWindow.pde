@@ -113,6 +113,14 @@ class ConfigureWindow extends PApplet {
 		ui.scroll(mouseX, mouseY, e.getCount());
 	}
 
+	void keyPressed() {
+		ui.keyDown(mouseX, mouseY, key);
+	}
+
+	void keyReleased() {
+		ui.keyUp(mouseX, mouseY, key);
+	}
+
 	void closeWindow() {
 		surface.setVisible(false);
 		dispose();

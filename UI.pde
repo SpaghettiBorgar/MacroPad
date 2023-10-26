@@ -4,10 +4,14 @@ public interface UIElement<T extends UIElement<T>> {
 	public T onClick(Runnable onClick);
 	public T onRelease(Runnable onRelease);
 	public T onScroll(Runnable onScroll);
+	public T onKeyUp(Runnable onKeyUp);
+	public T onKeyDown(Runnable onKeyDown);
 	public void draw();
 	public void click();
 	public void release();
 	public void scroll();
+	public void keyUp();
+	public void keyDown();
 	public int x();
 	public T x(int v);
 	public int y();
@@ -31,11 +35,11 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 	PApplet ctx;
 	UI ui;
 	int x, y, w, h;
-	Runnable onDraw, onClick, onRelease, onScroll;
+	Runnable onDraw, onClick, onRelease, onScroll, onKeyUp, onKeyDown;
 
 	public AbstractUIBasicElement(PApplet ctx) {
 		this.ctx = ctx;
-		this.onDraw = this.onClick = this.onRelease = this.onScroll = () -> {};
+		this.onDraw = this.onClick = this.onRelease = this.onScroll = this.onKeyUp = this.onKeyDown = () -> {};
 	}
 
 	public boolean touches(int mx, int my) {
@@ -62,6 +66,16 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 		return (T) this;
 	}
 
+	public T onKeyUp(Runnable onKeyUp) {
+		this.onKeyUp = onKeyUp;
+		return (T) this;
+	}
+
+	public T onKeyDown(Runnable onKeyDown) {
+		this.onKeyDown = onKeyDown;
+		return (T) this;
+	}
+
 	public void draw() {
 		this.onDraw.run();
 	}
@@ -76,6 +90,14 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 
 	public void scroll() {
 		this.onScroll.run();
+	}
+
+	public void keyUp() {
+		this.onKeyUp.run();
+	}
+
+	public void keyDown() {
+		this.onKeyDown.run();
 	}
 
 	public int x() {
@@ -379,6 +401,8 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int textAlignX;
 	int cursorPos;
 	int lineNumbers;
+	int numberColW;
+	ArrayList<Integer> lineOffsets;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
 		super(ctx);
@@ -387,17 +411,21 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.lines = lines;
 		this.placeholder = "";
 		this.onDraw = () -> {this._onDraw();};
+		this.onClick = () -> {this._onClick();};
+		this.onKeyDown = () -> {this._onKeyDown();};
 		this.cursorPos = -1;
 		this.lineNumbers = lines > 1 ? 0 : -1;
+		this.numberColW = 0;
+		this.lineOffsets = new ArrayList<>();
 	}
 
 	private void _onDraw() {
-		int numberColW = lineNumbers >= 0 ? 12 : 0;
 		ctx.fill(240);
 		ctx.rect(x + numberColW, y, w - numberColW, h);
 		ctx.fill(text == null ? 120 : 0);
 		ctx.textSize(textSize);
 		ctx.textAlign(textAlignX, TOP);
+		lineOffsets.clear();
 
 		char chars[] = (text == null ? placeholder : text).toCharArray();
 		int cumY = 0;
@@ -412,6 +440,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			curLen = 0;
 			isContinuation = !lineFinished;
 			lineFinished = false;
+			lineOffsets.add(curChar);
 			while(curLen < w - 4 - numberColW) {
 				char c = chars[curChar];
 				curChar++;
@@ -449,6 +478,54 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			ctx.text(curLine, x + 2 + numberColW, y + 4 + cumY, w - 4 - numberColW, h - 4);
 			cumY += textSize;
 		}
+		if(millis() % 1000 < 500) {
+			if(cursorPos == -1)
+				return;
+			int i = 0;
+			while (lineOffsets.get(i) <= cursorPos)
+				i++;
+			i--;
+			ctx.fill(0);
+			ctx.rect(x + ctx.textWidth(text.substring(lineOffsets.get(i), cursorPos)) + numberColW + 2, y + i * textSize, 0, textSize);
+		}
+	}
+
+	private void _onClick() {
+		int line = ui.relY / textSize;
+		int i = lineOffsets.get(line);
+		int cumX = numberColW + 2;
+		while (i < lineOffsets.get(line + 1) && cumX < ui.relX)
+			cumX += ctx.textWidth(text.charAt(i++));
+		cursorPos = i;
+	}
+
+	private void _onKeyDown() {
+		if(ctx.key == CODED) {
+			switch(ctx.keyCode) {
+			case RIGHT:
+				cursorPos++;
+				break;
+			case LEFT:
+				cursorPos--;
+				break;
+			default:
+				println(ctx.key);
+			}
+		} else {
+			switch(ctx.key) {
+			case BACKSPACE:
+				text = text.substring(0, cursorPos - 1) + text.substring(cursorPos, text.length());
+				cursorPos--;
+				break;
+			case DELETE:
+				text = text.substring(0, cursorPos) + text.substring(cursorPos + 1, text.length());
+				break;
+			default:
+				text = text.substring(0, cursorPos) + ctx.key + text.substring(cursorPos, text.length());
+				cursorPos++;
+			}
+		}
+		println(cursorPos, text.charAt(cursorPos));
 	}
 
 	public String value() {
@@ -477,6 +554,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 
 	public T lineNumbers(int lineNumbers) {
 		this.lineNumbers = lineNumbers;
+		this.numberColW = lineNumbers >= 0 ? 12 : 0;
 		return (T) this;
 	}
 }
@@ -660,6 +738,8 @@ public class UI {
 	PApplet ctx;
 	LinkedList<UIElement> elements;
 	int scrollY;
+	int relX;
+	int relY;
 
 	public UI(PApplet ctx) {
 		this.ctx = ctx;
@@ -683,6 +763,11 @@ public class UI {
 		elements.remove(e);
 	}
 
+	private void calcRelMouse(UIElement e, int x, int y) {
+		relX = x - e.x();
+		relY = y - e.y();
+	}
+
 	public void click(int x, int y, int button) {
 		UIElement e = getTouchingElement(x, y);
 		if(e != null)
@@ -702,12 +787,26 @@ public class UI {
 			e.scroll();
 	}
 
+	public void keyUp(int x, int y, int key) {
+		UIElement e = getTouchingElement(x, y);
+		if(e != null)
+			e.keyUp();
+	}
+
+	public void keyDown(int x, int y, int key) {
+		UIElement e = getTouchingElement(x, y);
+		if(e != null)
+			e.keyDown();
+	}
+
 	public UIElement getTouchingElement(int x, int y) {
 		ListIterator<UIElement> it = elements.listIterator(elements.size());
 		while(it.hasPrevious()) {
 			UIElement e = it.previous();
-			if (e.touches(x, y))
+			if (e.touches(x, y)) {
+				calcRelMouse(e, x, y);
 				return e;
+			}
 		}
 		return null;
 	}
