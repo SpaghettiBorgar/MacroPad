@@ -395,7 +395,43 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		ctx.fill(text == null ? 120 : 0);
 		ctx.textSize(textSize);
 		ctx.textAlign(textAlignX, TOP);
-		ctx.text(text == null ? placeholder : text, x + 2, y + 4, w - 4, h - 4);
+
+		char chars[] = (text == null ? placeholder : text).toCharArray();
+		int nLines = 0;
+		int curChar = 0;
+		while(curChar < chars.length) {
+			String curLine = "";
+			float curLen = 0;
+			boolean lineFinished = false;
+			while(curLen < w - 4) {
+				char c = chars[curChar];
+				curChar++;
+				if(c == '\n') {
+					lineFinished = true;
+					break;
+				}
+				curLine += c;
+				curLen += ctx.textWidth(c);
+				if(curChar == chars.length) {
+					lineFinished = true;
+					break;
+				}
+			}
+			if (!lineFinished) {
+				int i = curLine.length() - 1;
+				int ctype = Character.getType(curLine.charAt(i));
+				while(i >= 0 && Character.getType(curLine.charAt(i)) == ctype) {
+					i--;
+				}
+				if (i == 0) {
+					i = curLine.length() - 1;
+				}
+				curChar = curChar - (curLine.length() - i);
+				curLine = curLine.substring(0, i);
+			}
+			ctx.text(curLine, x + 2, y + 2 + nLines * textSize, w - 4, h - 4);
+			nLines++;
+		}
 	}
 
 	public String value() {
