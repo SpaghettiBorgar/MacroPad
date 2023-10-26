@@ -75,7 +75,7 @@ class ConfigureWindow extends PApplet {
 		.wh(60, 20)
 		.label("Cancel")
 		.onRelease(()-> {
-			this.dispose();
+			this.closeWindow();
 		}))
 		.addRight(0, new UIButton(this)
 		.wh(40, 20)
@@ -88,7 +88,7 @@ class ConfigureWindow extends PApplet {
 					println(prop, action.getProperty(prop));
 				}
 				actions.addAction(page, row, col, action);
-				this.dispose();
+				this.closeWindow();
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
@@ -110,5 +110,10 @@ class ConfigureWindow extends PApplet {
 
 	void mouseWheel(MouseEvent e) {
 		ui.scroll(mouseX, mouseY, e.getCount());
+	}
+
+	void closeWindow() {
+		surface.setVisible(false);
+		dispose();
 	}
 }
