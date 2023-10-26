@@ -13,7 +13,7 @@ class ConfigureWindow extends PApplet {
 	}
 
 	void settings() {
-		size(320, 240);
+		size(320, 260);
 	}
 
 	void setup() {
@@ -47,9 +47,10 @@ class ConfigureWindow extends PApplet {
 			Class<?> type = props.get(prop);
 			HoldsValue e;
 			if (type == String.class) {
-				e = new UITextField(this, 200, 4)
+				e = new UITextField(this, 200, 6)
 				.value(action.getProperty(prop))
-				.placeholder(prop);
+				.placeholder(prop)
+				.lineNumbers(1);
 				propElems.put(prop, e);
 				fb.addRight(new UILabel(this, prop))
 				.addRow();
@@ -67,7 +68,7 @@ class ConfigureWindow extends PApplet {
 				continue;
 			}
 			propElems.put(prop, e);
-			fb.addRight(8, (UIElement) e);
+			fb.addRight((UIElement) e);
 			fb.addRow();
 		}
 		fb.addRow(8)

@@ -378,6 +378,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int lines;
 	int textAlignX;
 	int cursorPos;
+	int lineNumbers;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
 		super(ctx);
@@ -387,23 +388,31 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.placeholder = "";
 		this.onDraw = () -> {this._onDraw();};
 		this.cursorPos = -1;
+		this.lineNumbers = lines > 1 ? 0 : -1;
 	}
 
 	private void _onDraw() {
+		int numberColW = lineNumbers >= 0 ? 12 : 0;
 		ctx.fill(240);
-		ctx.rect(x, y, w, h);
+		ctx.rect(x + numberColW, y, w - numberColW, h);
 		ctx.fill(text == null ? 120 : 0);
 		ctx.textSize(textSize);
 		ctx.textAlign(textAlignX, TOP);
 
 		char chars[] = (text == null ? placeholder : text).toCharArray();
-		int nLines = 0;
+		int cumY = 0;
 		int curChar = 0;
+		int lineNumber = 0;
+		String curLine;
+		float curLen;
+		boolean isContinuation;
+		boolean lineFinished = true;
 		while(curChar < chars.length) {
-			String curLine = "";
-			float curLen = 0;
-			boolean lineFinished = false;
-			while(curLen < w - 4) {
+			curLine = "";
+			curLen = 0;
+			isContinuation = !lineFinished;
+			lineFinished = false;
+			while(curLen < w - 4 - numberColW) {
 				char c = chars[curChar];
 				curChar++;
 				if(c == '\n') {
@@ -417,20 +426,28 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 					break;
 				}
 			}
-			if (!lineFinished) {
+			if (!isContinuation)
+				lineNumber++;
+			if(!lineFinished) {
 				int i = curLine.length() - 1;
 				int ctype = Character.getType(curLine.charAt(i));
-				while(i >= 0 && Character.getType(curLine.charAt(i)) == ctype) {
+				while(i >= 0 && Character.getType(curLine.charAt(i)) == ctype)
 					i--;
-				}
-				if (i == 0) {
+				if (i == 0)
 					i = curLine.length() - 1;
-				}
 				curChar = curChar - (curLine.length() - i);
 				curLine = curLine.substring(0, i);
 			}
-			ctx.text(curLine, x + 2, y + 2 + nLines * textSize, w - 4, h - 4);
-			nLines++;
+			String lineMarking = "";
+			if (isContinuation)
+				lineMarking = "→";
+			else if(lineNumbers > 0 && (lineNumber - 1) % lineNumbers == 0)
+				lineMarking = String.valueOf(lineNumber);
+			ctx.fill(lineMarking == "→" ? 100 : 20);
+			ctx.text(lineMarking, x + 1, y + 4 + cumY);
+			ctx.fill(0);
+			ctx.text(curLine, x + 2 + numberColW, y + 4 + cumY, w - 4 - numberColW, h - 4);
+			cumY += textSize;
 		}
 	}
 
@@ -455,6 +472,11 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 
 	public T alignX(int textAlignX) {
 		this.textAlignX = textAlignX;
+		return (T) this;
+	}
+
+	public T lineNumbers(int lineNumbers) {
+		this.lineNumbers = lineNumbers;
 		return (T) this;
 	}
 }
