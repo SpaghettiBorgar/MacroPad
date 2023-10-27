@@ -402,6 +402,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int cursorPos;
 	int lineNumbers;
 	int numberColW;
+	int cursorBlinkStart;
 	ArrayList<Integer> lineOffsets;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
@@ -416,6 +417,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.cursorPos = -1;
 		this.lineNumbers = lines > 1 ? 0 : -1;
 		this.numberColW = 0;
+		this.cursorBlinkStart = 0;
 		this.lineOffsets = new ArrayList<>();
 	}
 
@@ -444,13 +446,9 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			while(curLen < w - 4 - numberColW) {
 				char c = chars[curChar];
 				curChar++;
-				if(c == '\n') {
-					lineFinished = true;
-					break;
-				}
 				curLine += c;
 				curLen += ctx.textWidth(c);
-				if(curChar == chars.length) {
+				if(c == '\n' || curChar == chars.length) {
 					lineFinished = true;
 					break;
 				}
@@ -478,35 +476,37 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			ctx.text(curLine, x + 2 + numberColW, y + 4 + cumY, w - 4 - numberColW, h - 4);
 			cumY += textSize;
 		}
-		if(millis() % 1000 < 500) {
+		if(lineOffsets.isEmpty())
+			lineOffsets.add(0);
+		if((millis() - cursorBlinkStart) % 1000 < 500) {
 			if(cursorPos == -1)
 				return;
-			int i = 0;
-			while (lineOffsets.get(i) <= cursorPos)
-				i++;
-			i--;
+			int i = lineOffsets.size() - 1;
+			while (lineOffsets.get(i) > cursorPos)
+				i--;
 			ctx.fill(0);
 			ctx.rect(x + ctx.textWidth(text.substring(lineOffsets.get(i), cursorPos)) + numberColW + 2, y + i * textSize, 0, textSize);
 		}
 	}
 
 	private void _onClick() {
-		int line = ui.relY / textSize;
+		int line = clamp(ui.relY / textSize, 0, lineOffsets.size() - 1);
 		int i = lineOffsets.get(line);
-		int cumX = numberColW + 2;
-		while (i < lineOffsets.get(line + 1) && cumX < ui.relX)
+		int iMax = line >= (lineOffsets.size() - 1) ? text.length() : (lineOffsets.get(line + 1) - 1);
+		float cumX = numberColW + 2;
+		while (cumX < ui.relX && i < iMax)
 			cumX += ctx.textWidth(text.charAt(i++));
-		cursorPos = i;
+		moveCursor(i);
 	}
 
 	private void _onKeyDown() {
 		if(ctx.key == CODED) {
 			switch(ctx.keyCode) {
 			case RIGHT:
-				cursorPos++;
+				moveCursorBy(1);
 				break;
 			case LEFT:
-				cursorPos--;
+				moveCursorBy(-1);
 				break;
 			default:
 				println(ctx.key);
@@ -514,18 +514,28 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		} else {
 			switch(ctx.key) {
 			case BACKSPACE:
-				text = text.substring(0, cursorPos - 1) + text.substring(cursorPos, text.length());
-				cursorPos--;
+				if(cursorPos > 0)
+					text = text.substring(0, cursorPos - 1) + text.substring(cursorPos, text.length());
+				moveCursorBy(-1);
 				break;
 			case DELETE:
-				text = text.substring(0, cursorPos) + text.substring(cursorPos + 1, text.length());
+				if(cursorPos < text.length())
+					text = text.substring(0, cursorPos) + text.substring(cursorPos + 1, text.length());
 				break;
 			default:
 				text = text.substring(0, cursorPos) + ctx.key + text.substring(cursorPos, text.length());
-				cursorPos++;
+				moveCursorBy(1);
 			}
 		}
-		println(cursorPos, text.charAt(cursorPos));
+	}
+
+	private void moveCursor(int n) {
+		cursorPos = clamp(n, 0, text.length());
+		cursorBlinkStart = millis();
+	}
+
+	private void moveCursorBy(int n) {
+		moveCursor(cursorPos + n);
 	}
 
 	public String value() {
