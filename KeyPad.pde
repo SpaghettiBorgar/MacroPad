@@ -88,35 +88,36 @@ public class ActionMatrix {
 }
 
 void readSerial() {
-	if (serialPort.available() > 0) {
-		String val = serialPort.readStringUntil('\n').trim();
-		println(val);
-		switch(val.charAt(0)) {
+	if (serialPort == null || !(serialPort.available() > 0))
+		return;
+
+	String val = serialPort.readStringUntil('\n').trim();
+	println(val);
+	switch(val.charAt(0)) {
+	case 'D':
+		actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
+		break;
+	case 'U':
+		actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
+		break;
+	case 'R':
+		actions.nextPage();
+		break;
+	case 'L':
+		actions.prevPage();
+		break;
+	case 'S':
+		switch(val.charAt(1)) {
 		case 'D':
-			actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').trigger();
+			sw = true;
 			break;
 		case 'U':
-			actions.getAction(val.charAt(2) - '0', val.charAt(1) - '0').untrigger();
+			sw = false;
 			break;
-		case 'R':
-			actions.nextPage();
-			break;
-		case 'L':
-			actions.prevPage();
-			break;
-		case 'S':
-			switch(val.charAt(1)) {
-			case 'D':
-				sw = true;
-				break;
-			case 'U':
-				sw = false;
-				break;
-			}
-			break;
-		default:
-			println("Unhandled opcode: " + val);
 		}
+		break;
+	default:
+		println("Unhandled opcode: " + val);
 	}
 }
 
@@ -125,10 +126,13 @@ void setup() {
 	setupPages();
 	setupUI();
 
-	String portName = Serial.list()[0];
-	println(portName);
-	portName = "/dev/ttyUSB0"; // tmp
-	serialPort = new Serial(this, portName, 9600);
+	if(Serial.list().length >= 1) {
+		String portName = Serial.list()[0];
+		println("Using serial port " + portName);
+		serialPort = new Serial(this, portName, 9600);
+	} else {
+		println("No serial devices found!");
+	}
 }
 
 void setupPages() {
