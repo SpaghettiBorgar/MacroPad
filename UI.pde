@@ -299,6 +299,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 	ArrayList<E> options;
 	int selectedOption;
 	UIDropdownExpanded expanded;
+	boolean hovering;
 	Runnable onSelect;
 
 	public AbstractUIDropdown(PApplet ctx) {
@@ -309,27 +310,60 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		this.onDraw = () -> {this._onDraw();};
 		this.onClick = () -> {this._onClick();};
 		this.onScroll = () -> {this._onScroll();};
+		this.onKeyDown = () -> {this._onKeyDown();};
+		this.onHover = () -> {this._onHover();};
+		this.onLeave = () -> {this._onLeave();};
 		this.onSelect = () -> {};
 	}
 
 	private void _onDraw() {
-		ctx.fill(160);
+		ctx.fill(200);
 		ctx.rect(this.x, this.y, this.w, this.h);
-		ctx.fill(0, 0, 0);
+		if(hovering) {
+			ctx.fill(0, 0, 0, 20);
+			ctx.rect(this.x, this.y, this.w, this.h);
+		}
+		ctx.fill(40);
+		ctx.textAlign(RIGHT, CENTER);
+		ctx.text("↓", x, y, w - 2, h);
+		ctx.fill(0);
 		ctx.textSize(16);
 		ctx.textAlign(LEFT, CENTER);
 		ctx.text(options.isEmpty() ? "—" : makeString(options.get(selectedOption)), this.x + 2, this.y + this.h / 2);
 	}
 
 	private void _onClick() {
-		if (expanded == null) {
-			expanded = new UIDropdownExpanded();
-			ui.setPopup(expanded);
-		}
+		expanded = new UIDropdownExpanded();
+		expanded.hovering = selectedOption;
+		ui.setPopup(expanded);
 	}
 
 	private void _onScroll() {
 		selectedOption = options.isEmpty() ? 0 : clamp(selectedOption + ui.scrollY, 0, options.size() - 1);
+	}
+
+	private void _onKeyDown() {
+		switch(ctx.keyCode) {
+		case UP:
+			selectedOption = clamp(selectedOption - 1, 0, options.size() - 1);
+			break;
+		case DOWN:
+			selectedOption = clamp(selectedOption + 1, 0, options.size() - 1);
+			break;
+		case ENTER:
+		case RETURN:
+			expanded = new UIDropdownExpanded();
+			expanded.hovering = selectedOption;
+			ui.setPopup(expanded);
+		}
+	}
+
+	private void _onHover() {
+		hovering = true;
+	}
+
+	private void _onLeave() {
+		hovering = false;
 	}
 
 	public T onSelect(Runnable onSelect) {
@@ -341,9 +375,9 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		this.options.addAll(Arrays.asList(options));
 		float max = 0;
 		for(E o : options) {
-			max = max(max, ctx.textWidth(String.valueOf(o)));
+			max = max(max, ctx.textWidth(makeString(o)));
 		}
-		this.w((int) ceil(max) + 4);
+		this.w((int) ceil(max) + 4 + 20);
 		return (T) this;
 	}
 
@@ -366,27 +400,62 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 	}
 
 	private class UIDropdownExpanded extends AbstractUIBasicElement<UIDropdownExpanded> {
+		int hovering;
+
 		public UIDropdownExpanded() {
 			super(AbstractUIDropdown.this.ctx);
-			this.xy(AbstractUIDropdown.this.x, AbstractUIDropdown.this.y);
-			this.wh(AbstractUIDropdown.this.w, AbstractUIDropdown.this.options.size() * 20);
+			this.hovering = 0;
+			this.xy(AbstractUIDropdown.this.x + 5, AbstractUIDropdown.this.y + 10);
+			this.wh(AbstractUIDropdown.this.w - 10, AbstractUIDropdown.this.options.size() * 20);
 			this.onDraw = () -> {this._onDraw();};
 			this.onClick = () -> {this._onClick();};
+			this.onKeyDown = () -> {this._onKeyDown();};
+			this.onHover = () -> {this._onHover();};
 		}
+
+		private void choose(int option) {
+			AbstractUIDropdown.this.selectedOption = option;
+			AbstractUIDropdown.this.onSelect.run();
+			AbstractUIDropdown.this.expanded = null;
+			AbstractUIDropdown.this.ui.closePopup();
+			AbstractUIDropdown.this.ui.focus(AbstractUIDropdown.this);
+		}
+
 		private void _onDraw() {
 			for(int i = 0; i < options.size(); i++) {
-				ctx.fill(180 + 20 * (i % 2));
+				ctx.fill(220 + 10 * (i % 2));
 				ctx.rect(this.x, this.y + 20 * i, this.w, 20);
+				if(hovering == i) {
+					ctx.fill(0, 0, 0, 40);
+					ctx.rect(this.x, this.y + 20 * i, this.w, 20);
+				}
 				ctx.fill(0);
 				ctx.textAlign(LEFT, CENTER);
 				ctx.text(makeString(options.get(i)), this.x + 2, this.y + 20 * i + 10);
 			}
 		}
+
 		private void _onClick() {
-			AbstractUIDropdown.this.selectedOption = (ctx.mouseY - this.y) / 20;
-			AbstractUIDropdown.this.onSelect.run();
-			AbstractUIDropdown.this.expanded = null;
-			AbstractUIDropdown.this.ui.closePopup();
+			choose((ctx.mouseY - this.y) / 20);
+		}
+
+		private void _onKeyDown() {
+			switch(ctx.keyCode) {
+			case UP:
+				hovering = clamp(hovering - 1, 0, options.size() - 1);
+				break;
+			case DOWN:
+				hovering = clamp(hovering + 1, 0, options.size() - 1);
+				break;
+			case ENTER:
+			case RETURN:
+				choose(hovering);
+				break;
+			}
+		}
+
+		private void _onHover() {
+			hovering = ui.relY / 20;
 		}
 	}
 }
@@ -875,14 +944,13 @@ public class UI {
 	public void draw() {
 		ctx.background(220);
 
-		if (focus != null) {
-			ctx.stroke(50, 200, 20);
-			ctx.noFill();
-			ctx.rect(focus.x() - 1, focus.y() - 1, focus.w() + 2, focus.h() + 2);
-			ctx.stroke(0);
-		}
-
 		for(UIElement e : elements) {
+			if(focus == e) {
+				ctx.stroke(50, 200, 20);
+				ctx.noFill();
+				ctx.rect(e.x() - 1, e.y() - 1, e.w() + 2, e.h() + 2);
+				ctx.stroke(0);
+			}
 			e.draw();
 		}
 	}
@@ -896,10 +964,15 @@ public class UI {
 		elements.remove(e);
 	}
 
+	public void focus(UIElement e) {
+		focus = e;
+	}
+
 	public void setPopup(UIElement e) {
 		closePopup();
 		addElement(e);
 		popup = e;
+		focus = e;
 	}
 
 	public void closePopup() {
@@ -914,8 +987,10 @@ public class UI {
 
 	public void click(int x, int y, int button) {
 		UIElement e = getTouchingElement(x, y);
-		if(e != popup)
+		if(popup != null && e != popup) {
 			closePopup();
+			return;
+		}
 		if(e instanceof UITextField || e instanceof UIDropdown || e instanceof UINumberInput)
 			focus = e;
 		else
