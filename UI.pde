@@ -265,7 +265,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 	private void _onClick() {
 		if (expanded == null) {
 			expanded = new UIDropdownExpanded();
-			ui.addElement(expanded);
+			ui.setPopup(expanded);
 		}
 	}
 
@@ -327,7 +327,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 			AbstractUIDropdown.this.selectedOption = (ctx.mouseY - this.y) / 20;
 			AbstractUIDropdown.this.onSelect.run();
 			AbstractUIDropdown.this.expanded = null;
-			AbstractUIDropdown.this.ui.removeElement(this);
+			AbstractUIDropdown.this.ui.closePopup();
 		}
 	}
 }
@@ -478,7 +478,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		}
 		if(lineOffsets.isEmpty())
 			lineOffsets.add(0);
-		if((millis() - cursorBlinkStart) % 1000 < 500) {
+		if(ui.focus == this && (millis() - cursorBlinkStart) % 1000 < 500) {
 			if(cursorPos == -1)
 				return;
 			int i = lineOffsets.size() - 1;
@@ -750,6 +750,8 @@ public class UI {
 	int scrollY;
 	int relX;
 	int relY;
+	UIElement focus;
+	UIElement popup;
 
 	public UI(PApplet ctx) {
 		this.ctx = ctx;
@@ -758,6 +760,13 @@ public class UI {
 
 	public void draw() {
 		ctx.background(220);
+
+		if (focus != null) {
+			ctx.stroke(50, 200, 20);
+			ctx.noFill();
+			ctx.rect(focus.x() - 1, focus.y() - 1, focus.w() + 2, focus.h() + 2);
+			ctx.stroke(0);
+		}
 
 		for(UIElement e : elements) {
 			e.draw();
@@ -773,6 +782,17 @@ public class UI {
 		elements.remove(e);
 	}
 
+	public void setPopup(UIElement e) {
+		closePopup();
+		addElement(e);
+		popup = e;
+	}
+
+	public void closePopup() {
+		removeElement(popup);
+		popup = null;
+	}
+
 	private void calcRelMouse(UIElement e, int x, int y) {
 		relX = x - e.x();
 		relY = y - e.y();
@@ -780,6 +800,12 @@ public class UI {
 
 	public void click(int x, int y, int button) {
 		UIElement e = getTouchingElement(x, y);
+		if(e != popup)
+			closePopup();
+		if(e instanceof UITextField || e instanceof UIDropdown || e instanceof UINumberInput)
+			focus = e;
+		else
+			focus = null;
 		if(e != null)
 			e.click();
 	}
@@ -798,15 +824,15 @@ public class UI {
 	}
 
 	public void keyUp(int x, int y, int key) {
-		UIElement e = getTouchingElement(x, y);
-		if(e != null)
-			e.keyUp();
+		if(focus != null)
+			focus.keyUp();
 	}
 
 	public void keyDown(int x, int y, int key) {
-		UIElement e = getTouchingElement(x, y);
-		if(e != null)
-			e.keyDown();
+		if(key == ESC)
+			closePopup();
+		if(focus != null)
+			focus.keyDown();
 	}
 
 	public UIElement getTouchingElement(int x, int y) {
