@@ -624,6 +624,8 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	}
 
 	private void _onKeyDown() {
+		if(cursorPos == -1)
+			return;
 		setMainFont();
 		if(ctx.key == CODED) {
 			int line = getLineAtChar(cursorPos);
@@ -685,6 +687,10 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	}
 
 	private void moveCursor(int n) {
+		if(n == -1) {
+			cursorPos = -1;
+			return;
+		}
 		cursorPos = clamp(n, 0, text.length());
 		cursorBlinkStart = millis();
 	}
@@ -699,6 +705,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 
 	public T value(String text) {
 		this.text = text;
+		moveCursor(cursorPos);
 		return (T) this;
 	}
 
