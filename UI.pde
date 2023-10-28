@@ -421,13 +421,17 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.lineOffsets = new ArrayList<>();
 	}
 
+	private void setMainFont() {
+		ctx.textSize(textSize);
+		ctx.textAlign(textAlignX, TOP);
+	}
+
 	private void _onDraw() {
 		ctx.fill(240);
 		ctx.rect(x + numberColW, y, w - numberColW, h);
 		ctx.fill(text == null ? 120 : 0);
-		ctx.textSize(textSize);
-		ctx.textAlign(textAlignX, TOP);
 		lineOffsets.clear();
+		setMainFont();
 
 		char chars[] = (text == null ? placeholder : text).toCharArray();
 		int cumY = 0;
@@ -481,32 +485,38 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		if(ui.focus == this && (millis() - cursorBlinkStart) % 1000 < 500) {
 			if(cursorPos == -1)
 				return;
-			int i = lineOffsets.size() - 1;
-			while (lineOffsets.get(i) > cursorPos)
-				i--;
+			int i = getLineAtChar(cursorPos);
 			ctx.fill(0);
 			ctx.rect(x + ctx.textWidth(text.substring(lineOffsets.get(i), cursorPos)) + numberColW + 2, y + i * textSize, 0, textSize);
 		}
 	}
 
 	private void _onClick() {
-		int line = clamp(ui.relY / textSize, 0, lineOffsets.size() - 1);
-		int i = lineOffsets.get(line);
-		int iMax = line >= (lineOffsets.size() - 1) ? text.length() : (lineOffsets.get(line + 1) - 1);
-		float cumX = numberColW + 2;
-		while (cumX < ui.relX && i < iMax)
-			cumX += ctx.textWidth(text.charAt(i++));
-		moveCursor(i);
+		placeCursorNear(ui.relX, ui.relY);
 	}
 
 	private void _onKeyDown() {
+		setMainFont();
 		if(ctx.key == CODED) {
+			int line = getLineAtChar(cursorPos);
 			switch(ctx.keyCode) {
 			case RIGHT:
 				moveCursorBy(1);
 				break;
 			case LEFT:
 				moveCursorBy(-1);
+				break;
+			case UP:
+				placeCursorNear(numberColW + ctx.textWidth(text.substring(lineOffsets.get(line), cursorPos)), (line - 1) * textSize);
+				break;
+			case DOWN:
+				placeCursorNear(numberColW + ctx.textWidth(text.substring(lineOffsets.get(line), cursorPos)), (line + 1) * textSize);
+				break;
+			case KeyEvent.VK_HOME:
+				moveCursor(lineOffsets.get(line));
+				break;
+			case KeyEvent.VK_END:
+				moveCursor(lineOffsets.get(line + 1) - 1);
 				break;
 			default:
 				println(ctx.key);
@@ -527,6 +537,23 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 				moveCursorBy(1);
 			}
 		}
+	}
+
+	private int getLineAtChar(int index) {
+		int i = lineOffsets.size() - 1;
+		while (lineOffsets.get(i) > index)
+			i--;
+		return i;
+	}
+
+	private void placeCursorNear(float x, int y) {
+		int line = clamp(y / textSize, 0, lineOffsets.size() - 1);
+		int i = lineOffsets.get(line);
+		int iMax = line >= (lineOffsets.size() - 1) ? text.length() : (lineOffsets.get(line + 1) - 1);
+		float cumX = numberColW + 2;
+		while (cumX < x && i < iMax)
+			cumX += ctx.textWidth(text.charAt(i++));
+		moveCursor(i);
 	}
 
 	private void moveCursor(int n) {
