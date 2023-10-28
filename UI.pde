@@ -174,6 +174,7 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 
 public abstract class AbstractUICompositeElement<T extends AbstractUICompositeElement<T>> extends AbstractUIBasicElement<T> {
 	ArrayList<UIElement> children;
+	UIElement hover;
 
 	public AbstractUICompositeElement(PApplet ctx) {
 		super(ctx);
@@ -239,18 +240,25 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 
 	public void hover() {
 		UIElement e = getTouchingChild();
-		if(e != null)
-			e.hover();
-		else
+		if(e != null) {
+			if(hover != null && hover != e)
+				hover.leave();
+			hover = e;
+			hover.hover();
+		} else {
+			if(hover != null)
+				hover.leave();
+			hover = null;
 			super.hover();
+		}
 	}
 
 	public void leave() {
-		UIElement e = getTouchingChild();
-		if(e != null)
-			e.leave();
-		else
-			super.leave();
+		if(hover != null) {
+			hover.leave();
+			hover = null;
+		}
+		super.leave();
 	}
 
 	@Override
@@ -656,6 +664,7 @@ public class UITextField extends AbstractUITextField<UITextField> {
 public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends AbstractUIBasicElement<T> {
 	String label;
 	boolean pressed;
+	boolean hovering;
 	int labelSize;
 	color neutralColor;
 	color pressedColor;
@@ -666,11 +675,12 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 		super(ctx);
 		this.label = "";
 		this.pressed = false;
+		this.hovering = false;
 		this.labelSize = 16;
 		this.neutralColor = color(240);
 		this.pressedColor = color(180, 200, 220);
 		this.onDraw = () -> {this._onDraw();};
-		this.onHover = () -> {};
+		this.onHover = () -> {this._onHover();};
 		this.onLeave = () -> {this._onLeave();};
 		this.onHold = () -> {};
 	}
@@ -678,15 +688,23 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 	private void _onDraw() {
 		ctx.fill(pressed ? pressedColor : neutralColor);
 		ctx.rect(x, y, w, h);
+		if(hovering) {
+			ctx.fill(0, 0, 0, 20);
+			ctx.rect(x, y, w, h);
+		}
 		ctx.fill(0);
 		ctx.textSize(labelSize);
 		ctx.textAlign(CENTER, CENTER);
 		ctx.text(label, x + w / 2, y + h / 2);
 	}
 
+	private void _onHover() {
+		this.hovering = true;
+	}
+
 	private void _onLeave() {
-		if(!ctx.mousePressed)
-			this.pressed = false;
+		this.pressed = false;
+		this.hovering = false;
 	}
 
 	@Override
