@@ -749,6 +749,7 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 		this.neutralColor = color(240);
 		this.pressedColor = color(180, 200, 220);
 		this.onDraw = () -> {this._onDraw();};
+		this.onKeyDown = () -> {this._onKeyDown();};
 		this.onHover = () -> {this._onHover();};
 		this.onLeave = () -> {this._onLeave();};
 		this.onHold = () -> {};
@@ -765,6 +766,11 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 		ctx.textSize(labelSize);
 		ctx.textAlign(CENTER, CENTER);
 		ctx.text(label, x + w / 2, y + h / 2);
+	}
+
+	private void _onKeyDown() {
+		if (ctx.keyCode == RETURN || ctx.keyCode == ENTER)
+			this.onRelease.run();
 	}
 
 	private void _onHover() {
