@@ -991,7 +991,7 @@ public class UI {
 			closePopup();
 			return;
 		}
-		if(e instanceof UITextField || e instanceof UIDropdown || e instanceof UINumberInput)
+		if(e instanceof UITextField || e instanceof UIDropdown || e instanceof UIButton || e instanceof UINumberInput)
 			focus = e;
 		else
 			focus = null;
@@ -1021,8 +1021,12 @@ public class UI {
 	}
 
 	public void keyDown(int x, int y, int key) {
-		if(key == ESC)
+		if(key == ESC) {
 			closePopup();
+			if (focus != null)
+				focus.leave();
+			focus = null;
+		}
 		if(focus != null)
 			focus.keyDown();
 	}

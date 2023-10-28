@@ -115,6 +115,8 @@ class ConfigureWindow extends PApplet {
 
 	void keyPressed() {
 		ui.keyDown(mouseX, mouseY, key);
+		if(key == ESC)
+			key = 0;
 	}
 
 	void keyReleased() {
