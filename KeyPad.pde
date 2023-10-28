@@ -224,3 +224,19 @@ void mouseReleased() {
 void mouseWheel(MouseEvent e) {
 	ui.scroll(mouseX, mouseY, e.getCount());
 }
+
+void keyPressed() {
+	ui.keyDown(mouseX, mouseY, key);
+}
+
+void keyReleased() {
+	ui.keyUp(mouseX, mouseY, key);
+}
+
+void mouseMoved() {
+	ui.mouseMove(mouseX, mouseY, false);
+}
+
+void mouseDragged() {
+	ui.mouseMove(mouseX, mouseY, true);
+}

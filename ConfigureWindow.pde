@@ -121,6 +121,14 @@ class ConfigureWindow extends PApplet {
 		ui.keyUp(mouseX, mouseY, key);
 	}
 
+	void mouseMoved() {
+		ui.mouseMove(mouseX, mouseY, false);
+	}
+
+	void mouseDragged() {
+		ui.mouseMove(mouseX, mouseY, true);
+	}
+
 	void closeWindow() {
 		surface.setVisible(false);
 		dispose();

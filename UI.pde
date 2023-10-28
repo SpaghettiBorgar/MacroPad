@@ -6,12 +6,16 @@ public interface UIElement<T extends UIElement<T>> {
 	public T onScroll(Runnable onScroll);
 	public T onKeyUp(Runnable onKeyUp);
 	public T onKeyDown(Runnable onKeyDown);
+	public T onHover(Runnable onHover);
+	public T onLeave(Runnable onLeave);
 	public void draw();
 	public void click();
 	public void release();
 	public void scroll();
 	public void keyUp();
 	public void keyDown();
+	public void hover();
+	public void leave();
 	public int x();
 	public T x(int v);
 	public int y();
@@ -35,11 +39,12 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 	PApplet ctx;
 	UI ui;
 	int x, y, w, h;
-	Runnable onDraw, onClick, onRelease, onScroll, onKeyUp, onKeyDown;
+	Runnable onDraw, onClick, onRelease, onScroll, onKeyUp, onKeyDown, onHover, onLeave;
 
 	public AbstractUIBasicElement(PApplet ctx) {
 		this.ctx = ctx;
-		this.onDraw = this.onClick = this.onRelease = this.onScroll = this.onKeyUp = this.onKeyDown = () -> {};
+		this.onDraw = this.onClick = this.onRelease = this.onScroll =
+		this.onKeyUp = this.onKeyDown = this.onHover = this.onLeave = () -> {};
 	}
 
 	public boolean touches(int mx, int my) {
@@ -76,6 +81,16 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 		return (T) this;
 	}
 
+	public T onHover(Runnable onHover) {
+		this.onHover = onHover;
+		return (T) this;
+	}
+
+	public T onLeave(Runnable onLeave) {
+		this.onLeave = onLeave;
+		return (T) this;
+	}
+
 	public void draw() {
 		this.onDraw.run();
 	}
@@ -98,6 +113,14 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 
 	public void keyDown() {
 		this.onKeyDown.run();
+	}
+
+	public void hover() {
+		this.onHover.run();
+	}
+
+	public void leave() {
+		this.onLeave.run();
 	}
 
 	public int x() {
@@ -170,36 +193,64 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 	@Override
 	public void draw() {
 		super.draw();
-		for (UIElement child : children) {
+		for (UIElement child : children)
 			child.draw();
-		}
 	}
 
 	public void click() {
 		UIElement e = getTouchingChild();
-		if(e != null) {
+		if(e != null)
 			e.click();
-		} else {
+		else
 			super.click();
-		}
 	}
 
 	public void release() {
 		UIElement e = getTouchingChild();
-		if(e != null) {
+		if(e != null)
 			e.release();
-		} else {
+		else
 			super.release();
-		}
 	}
 
 	public void scroll() {
 		UIElement e = getTouchingChild();
-		if(e != null) {
+		if(e != null)
 			e.scroll();
-		} else {
+		else
 			super.scroll();
-		}
+	}
+
+	public void keyUp() {
+		UIElement e = getTouchingChild();
+		if(e != null)
+			e.keyUp();
+		else
+			super.keyUp();
+	}
+
+	public void keyDown() {
+		UIElement e = getTouchingChild();
+		if(e != null)
+			e.keyDown();
+		else
+			super.keyDown();
+	}
+
+	public void hover() {
+		UIElement e = getTouchingChild();
+		if(e != null)
+			e.hover();
+		else
+			super.hover();
+	}
+
+	public void leave() {
+		UIElement e = getTouchingChild();
+		if(e != null)
+			e.leave();
+		else
+			super.leave();
 	}
 
 	@Override
@@ -619,6 +670,8 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 		this.neutralColor = color(240);
 		this.pressedColor = color(180, 200, 220);
 		this.onDraw = () -> {this._onDraw();};
+		this.onHover = () -> {};
+		this.onLeave = () -> {this._onLeave();};
 		this.onHold = () -> {};
 	}
 
@@ -629,6 +682,11 @@ public abstract class AbstractUIButton<T extends AbstractUIButton<T>> extends Ab
 		ctx.textSize(labelSize);
 		ctx.textAlign(CENTER, CENTER);
 		ctx.text(label, x + w / 2, y + h / 2);
+	}
+
+	private void _onLeave() {
+		if(!ctx.mousePressed)
+			this.pressed = false;
 	}
 
 	@Override
@@ -736,6 +794,16 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		ctx.text(String.valueOf(value), x + w / 2, y + h / 2);
 	}
 
+	@Override
+	public void keyUp() {
+		tField.keyUp();
+	}
+
+	@Override
+	public void keyDown() {
+		tField.keyDown();
+	}
+
 	public T onChange(Runnable onChange) {
 		this.onChange = () -> {
 			tField.value(Integer.toString(this.value));
@@ -779,6 +847,7 @@ public class UI {
 	int relY;
 	UIElement focus;
 	UIElement popup;
+	UIElement hover;
 
 	public UI(PApplet ctx) {
 		this.ctx = ctx;
@@ -839,8 +908,11 @@ public class UI {
 
 	public void release(int x, int y, int button) {
 		UIElement e = getTouchingElement(x, y);
-		if(e != null)
+		if(hover != null && hover != e)
+			hover.leave();
+		else if(e != null) {
 			e.release();
+		}
 	}
 
 	public void scroll(int x, int y, int scroll) {
@@ -860,6 +932,17 @@ public class UI {
 			closePopup();
 		if(focus != null)
 			focus.keyDown();
+	}
+
+	public void mouseMove(int x, int y, boolean pressed) {
+		if(pressed)
+			return;
+		UIElement e = getTouchingElement(x, y);
+		if(hover != null && hover != e)
+			hover.leave();
+		hover = e;
+		if(e != null)
+			e.hover();
 	}
 
 	public UIElement getTouchingElement(int x, int y) {
