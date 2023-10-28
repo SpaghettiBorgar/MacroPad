@@ -304,7 +304,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 
 	public AbstractUIDropdown(PApplet ctx) {
 		super(ctx);
-		this.h(20);
+		this.h(24);
 		this.options = new ArrayList<>();
 		this.expanded = null;
 		this.onDraw = () -> {this._onDraw();};
@@ -329,7 +329,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		ctx.fill(0);
 		ctx.textSize(16);
 		ctx.textAlign(LEFT, CENTER);
-		ctx.text(options.isEmpty() ? "—" : makeString(options.get(selectedOption)), this.x + 2, this.y + this.h / 2);
+		ctx.text(options.isEmpty() ? "—" : makeString(options.get(selectedOption)), this.x + 4, this.y + this.h / 2);
 	}
 
 	private void _onClick() {
@@ -406,7 +406,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 			super(AbstractUIDropdown.this.ctx);
 			this.hovering = 0;
 			this.xy(AbstractUIDropdown.this.x + 5, AbstractUIDropdown.this.y + 10);
-			this.wh(AbstractUIDropdown.this.w - 10, AbstractUIDropdown.this.options.size() * 20);
+			this.wh(AbstractUIDropdown.this.w - 10, AbstractUIDropdown.this.options.size() * 24);
 			this.onDraw = () -> {this._onDraw();};
 			this.onClick = () -> {this._onClick();};
 			this.onKeyDown = () -> {this._onKeyDown();};
@@ -424,19 +424,19 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		private void _onDraw() {
 			for(int i = 0; i < options.size(); i++) {
 				ctx.fill(220 + 10 * (i % 2));
-				ctx.rect(this.x, this.y + 20 * i, this.w, 20);
+				ctx.rect(this.x, this.y + 24 * i, this.w, 24);
 				if(hovering == i) {
 					ctx.fill(0, 0, 0, 40);
-					ctx.rect(this.x, this.y + 20 * i, this.w, 20);
+					ctx.rect(this.x, this.y + 24 * i, this.w, 24);
 				}
 				ctx.fill(0);
 				ctx.textAlign(LEFT, CENTER);
-				ctx.text(makeString(options.get(i)), this.x + 2, this.y + 20 * i + 10);
+				ctx.text(makeString(options.get(i)), this.x + 4, this.y + 24 * i + 10);
 			}
 		}
 
 		private void _onClick() {
-			choose((ctx.mouseY - this.y) / 20);
+			choose((ctx.mouseY - this.y) / 24);
 		}
 
 		private void _onKeyDown() {
@@ -455,7 +455,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		}
 
 		private void _onHover() {
-			hovering = ui.relY / 20;
+			hovering = ui.relY / 24;
 		}
 	}
 }
