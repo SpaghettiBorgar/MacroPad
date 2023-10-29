@@ -961,7 +961,8 @@ public class UI {
 			if(focus == e) {
 				ctx.stroke(50, 200, 20);
 				ctx.noFill();
-				ctx.rect(e.x() - 1, e.y() - 1, e.w() + 2, e.h() + 2);
+				int rightOffset = e instanceof UITextField ? ((UITextField) e).numberColW : 0;
+				ctx.rect(e.x() + rightOffset - 1, e.y() - 1, e.w() - rightOffset + 2, e.h() + 2);
 				ctx.stroke(0);
 			}
 			e.draw();
