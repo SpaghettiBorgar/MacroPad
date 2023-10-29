@@ -901,7 +901,19 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 
 	@Override
 	public void keyDown() {
-		tField.keyDown();
+		switch(ctx.keyCode) {
+		case UP:
+		case KeyEvent.VK_ADD:
+			increment();
+			break;
+		case DOWN:
+		case KeyEvent.VK_SUBTRACT:
+			decrement();
+			break;
+		default:
+			println(ctx.keyCode);
+			tField.keyDown();
+		}
 	}
 
 	public T onChange(Runnable onChange) {
