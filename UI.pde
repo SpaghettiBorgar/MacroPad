@@ -590,7 +590,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			if(!lineFinished) {
 				int i = curLine.length() - 1;
 				int ctype = Character.getType(curLine.charAt(i));
-				while(i >= 0 && Character.getType(curLine.charAt(i)) == ctype)
+				while(i > 0 && Character.getType(curLine.charAt(i)) == ctype)
 					i--;
 				if (i == 0)
 					i = curLine.length() - 1;
