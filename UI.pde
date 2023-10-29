@@ -8,6 +8,8 @@ public interface UIElement<T extends UIElement<T>> {
 	public T onKeyDown(Runnable onKeyDown);
 	public T onHover(Runnable onHover);
 	public T onLeave(Runnable onLeave);
+	public T onFocus(Runnable onFocus);
+	public T onUnfocus(Runnable onUnfocus);
 	public void draw();
 	public void click();
 	public void release();
@@ -16,6 +18,8 @@ public interface UIElement<T extends UIElement<T>> {
 	public void keyDown();
 	public void hover();
 	public void leave();
+	public void focus();
+	public void unfocus();
 	public int x();
 	public T x(int v);
 	public int y();
@@ -39,12 +43,13 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 	PApplet ctx;
 	UI ui;
 	int x, y, w, h;
-	Runnable onDraw, onClick, onRelease, onScroll, onKeyUp, onKeyDown, onHover, onLeave;
+	Runnable onDraw, onClick, onRelease, onScroll, onKeyUp, onKeyDown, onHover, onLeave, onFocus, onUnfocus;
 
 	public AbstractUIBasicElement(PApplet ctx) {
 		this.ctx = ctx;
 		this.onDraw = this.onClick = this.onRelease = this.onScroll =
-		this.onKeyUp = this.onKeyDown = this.onHover = this.onLeave = () -> {};
+		this.onKeyUp = this.onKeyDown = this.onHover = this.onLeave =
+		this.onFocus = this.onUnfocus = () -> {};
 	}
 
 	public boolean touches(int mx, int my) {
@@ -91,6 +96,16 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 		return (T) this;
 	}
 
+	public T onFocus(Runnable onFocus) {
+		this.onFocus = onFocus;
+		return (T) this;
+	}
+
+	public T onUnfocus(Runnable onUnfocus) {
+		this.onUnfocus = onUnfocus;
+		return (T) this;
+	}
+
 	public void draw() {
 		this.onDraw.run();
 	}
@@ -121,6 +136,14 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 
 	public void leave() {
 		this.onLeave.run();
+	}
+
+	public void focus() {
+		this.onFocus.run();
+	}
+
+	public void unfocus() {
+		this.onUnfocus.run();
 	}
 
 	public int x() {
@@ -175,6 +198,7 @@ public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>
 public abstract class AbstractUICompositeElement<T extends AbstractUICompositeElement<T>> extends AbstractUIBasicElement<T> {
 	ArrayList<UIElement> children;
 	UIElement hover;
+	UIElement focus;
 
 	public AbstractUICompositeElement(PApplet ctx) {
 		super(ctx);
@@ -200,10 +224,16 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 
 	public void click() {
 		UIElement e = getTouchingChild();
-		if(e != null)
-			e.click();
-		else
+
+		if(focus != null && focus != e)
+			focus.unfocus();
+		focus = e;
+		if(focus != null) {
+			focus.focus();
+			focus.click();
+		} else {
 			super.click();
+		}
 	}
 
 	public void release() {
@@ -259,6 +289,15 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 			hover = null;
 		}
 		super.leave();
+	}
+
+	@Override
+	public void unfocus() {
+		if(focus != null) {
+			focus.unfocus();
+			focus = null;
+		}
+		super.unfocus();
 	}
 
 	@Override
@@ -971,7 +1010,7 @@ public class UI {
 
 		for(UIElement e : elements) {
 			if(focus == e) {
-				ctx.stroke(50, 200, 20);
+				ctx.stroke(50, 180, 20);
 				ctx.noFill();
 				int rightOffset = e instanceof UITextField ? ((UITextField) e).numberColW : 0;
 				ctx.rect(e.x() + rightOffset - 1, e.y() - 1, e.w() - rightOffset + 2, e.h() + 2);
@@ -991,17 +1030,28 @@ public class UI {
 	}
 
 	public void focus(UIElement e) {
+		if(focus != null && focus != e)
+			focus.unfocus();
 		focus = e;
+		focus.focus();
+	}
+
+	public void unfocus() {
+		if(focus != null)
+			focus.unfocus();
+		focus = null;
 	}
 
 	public void setPopup(UIElement e) {
 		closePopup();
 		addElement(e);
 		popup = e;
-		focus = e;
+		focus(popup);
 	}
 
 	public void closePopup() {
+		if(popup != null)
+			popup.unfocus();
 		removeElement(popup);
 		popup = null;
 	}
@@ -1018,9 +1068,9 @@ public class UI {
 			return;
 		}
 		if(e instanceof UITextField || e instanceof UIDropdown || e instanceof UIButton || e instanceof UINumberInput)
-			focus = e;
+			focus(e);
 		else
-			focus = null;
+			unfocus();
 		if(e != null)
 			e.click();
 	}
@@ -1049,11 +1099,12 @@ public class UI {
 	public void keyDown(int x, int y, int key) {
 		if(key == ESC) {
 			closePopup();
-			if (focus != null)
-				focus.leave();
-			focus = null;
-		}
-		if(focus != null)
+			unfocus();
+			if(hover != null && !hover.touches(x, y)) {
+				hover.leave();
+				hover = null;
+			}
+		} else if(focus != null)
 			focus.keyDown();
 	}
 
