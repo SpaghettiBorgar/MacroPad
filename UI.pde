@@ -224,16 +224,11 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 
 	public void click() {
 		UIElement e = getTouchingChild();
-
-		if(focus != null && focus != e)
-			focus.unfocus();
-		focus = e;
-		if(focus != null) {
-			focus.focus();
+		focusChild(e);
+		if(focus != null)
 			focus.click();
-		} else {
+		else
 			super.click();
-		}
 	}
 
 	public void release() {
@@ -291,12 +286,24 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 		super.leave();
 	}
 
-	@Override
-	public void unfocus() {
+	protected void focusChild(UIElement e) {
+		if(focus != e)
+			unfocusChild();
+		focus = e;
+		if(focus != null)
+			focus.focus();
+	}
+
+	protected void unfocusChild() {
 		if(focus != null) {
 			focus.unfocus();
 			focus = null;
 		}
+	}
+
+	@Override
+	public void unfocus() {
+		unfocusChild();
 		super.unfocus();
 	}
 
@@ -901,11 +908,8 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		this.value = 0;
 		this.wh(70, 20);
 		this.onChange(() -> {});
-		this.onScroll = () -> {
-			this.value -= ui.scrollY;
-			this.onChange.run();
-		};
-		this.onDraw = () -> {this._onDraw();};
+		this.onScroll = () -> {this._onScroll();};
+
 		this.children.add(new UIButton(ctx)
 		.label("-")
 		.xywh(0, 0, 20, 20)
@@ -917,20 +921,25 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		.onClickWithHold(() -> {increment();})
 		.onScroll(this.onScroll));
 		this.tField = new UITextField(ctx, 30, 1)
-		.xywh(20, 0, 33, 20)
+		.xywh(20, 0, 30, 20)
 		.alignX(CENTER)
 		.value(String.valueOf(this.value))
-		.onScroll(this.onScroll);
+		.onScroll(this.onScroll)
+		.onUnfocus(() -> {
+			this.readFromText();
+		});
 		this.children.add(tField);
 	}
 
-	private void _onDraw() {
-		ctx.fill(240);
-		ctx.rect(x + 20, y, 30, 20);
-		ctx.fill(0);
-		ctx.textSize(16);
-		ctx.textAlign(CENTER, CENTER);
-		ctx.text(String.valueOf(value), x + w / 2, y + h / 2);
+	private void _onScroll() {
+		unfocusChild();
+		this.value -= ui.scrollY;
+		this.onChange.run();
+	}
+
+	private void readFromText() {
+		this.value(int(tField.value()));
+		tField.value(String.valueOf(this.value()));
 	}
 
 	@Override
@@ -943,14 +952,16 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		switch(ctx.keyCode) {
 		case UP:
 		case KeyEvent.VK_ADD:
+			unfocusChild();
 			increment();
 			break;
 		case DOWN:
 		case KeyEvent.VK_SUBTRACT:
+			unfocusChild();
 			decrement();
 			break;
 		default:
-			println(ctx.keyCode);
+			focusChild(tField);
 			tField.keyDown();
 		}
 	}
