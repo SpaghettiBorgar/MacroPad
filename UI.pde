@@ -431,7 +431,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 				}
 				ctx.fill(0);
 				ctx.textAlign(LEFT, CENTER);
-				ctx.text(makeString(options.get(i)), this.x + 4, this.y + 24 * i + 10);
+				ctx.text(makeString(options.get(i)), this.x + 4, this.y + 24 * i + 12);
 			}
 		}
 
