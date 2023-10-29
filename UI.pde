@@ -578,6 +578,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int numberColW;
 	int cursorBlinkStart;
 	ArrayList<Integer> lineOffsets;
+	boolean showCursor;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
 		super(ctx);
@@ -588,11 +589,14 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.onDraw = () -> {this._onDraw();};
 		this.onClick = () -> {this._onClick();};
 		this.onKeyDown = () -> {this._onKeyDown();};
+		this.onFocus = () -> {this.showCursor = true;};
+		this.onUnfocus = () -> {this.showCursor = false;};
 		this.cursorPos = -1;
 		this.lineNumbers = lines > 1 ? 0 : -1;
 		this.numberColW = 0;
 		this.cursorBlinkStart = 0;
 		this.lineOffsets = new ArrayList<>();
+		this.showCursor = false;
 	}
 
 	private void setMainFont() {
@@ -656,7 +660,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		}
 		if(lineOffsets.isEmpty())
 			lineOffsets.add(0);
-		if(ui.focus == this && (millis() - cursorBlinkStart) % 1000 < 500) {
+		if(showCursor && (millis() - cursorBlinkStart) % 1000 < 500) {
 			if(cursorPos == -1)
 				return;
 			int i = getLineAtChar(cursorPos);
@@ -924,8 +928,10 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		.xywh(20, 0, 30, 20)
 		.alignX(CENTER)
 		.value(String.valueOf(this.value))
-		.onScroll(this.onScroll)
-		.onUnfocus(() -> {
+		.onScroll(this.onScroll);
+		Runnable oldUnfocus = this.tField.onUnfocus;	//Hack, pls refactor
+		this.tField.onUnfocus(() -> {
+			oldUnfocus.run();
 			this.readFromText();
 		});
 		this.children.add(tField);
