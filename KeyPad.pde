@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.function.Consumer;
 import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +59,11 @@ public class ActionMatrix {
 	}
 
 	void editAction(int row, int column) {
-		ConfigureWindow window = new ConfigureWindow(getAction(row, column), curPage, row, column);
+		ConfigureWindow window = new ConfigureWindow(getAction(row, column), (action) -> {
+			addAction(curPage, row, column, action);
+			storePages();
+			setupUI();
+		});
 	}
 
 	public int numPages() {

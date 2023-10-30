@@ -1,14 +1,12 @@
 class ConfigureWindow extends PApplet {
 	private UI ui;
 	Action action;
-	int page, row, col;
+	Consumer<Action> callback;
 
-	public ConfigureWindow(Action action, int page, int row, int col) {
+	public ConfigureWindow(Action action, Consumer<Action> callback) {
 		super();
 		this.action = action;
-		this.page = page;
-		this.row = row;
-		this.col = col;
+		this.callback = callback;
 		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
 
@@ -88,7 +86,7 @@ class ConfigureWindow extends PApplet {
 					action.setProperty(prop, propElems.get(prop).value());
 					println(prop, action.getProperty(prop));
 				}
-				actions.addAction(page, row, col, action);
+				callback.accept(action);
 				this.closeWindow();
 			} catch(Exception e) {
 				e.printStackTrace();
