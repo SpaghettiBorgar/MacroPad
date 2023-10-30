@@ -585,6 +585,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.wh(width, lines * 16 + 4);
 		this.textSize = 16;
 		this.lines = lines;
+		this.textAlignX = LEFT;
 		this.placeholder = "";
 		this.onDraw = () -> {this._onDraw();};
 		this.onClick = () -> {this._onClick();};
@@ -668,11 +669,11 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 			float textW = ctx.textWidth(text.substring(lineOffsets.get(i), cursorPos));
 			if(textAlignX == LEFT)
 				textW += 2;
-			if(textAlignX == CENTER)
+			else if(textAlignX == CENTER)
 				textW += ((this.w - numberColW) - textW) / 2;
 			else if(textAlignX == RIGHT)
 				textW = this.w - numberColW - 2;
-			ctx.rect(x + textW + numberColW, y + i * textSize + 2, 0, textSize);
+			ctx.rect(x + numberColW + textW, y + i * textSize + 2, 0, textSize);
 		}
 	}
 
