@@ -37,6 +37,7 @@ public interface UIElement<T extends UIElement<T>> {
 public interface HoldsValue<T, E> {
 	public E value();
 	public T value(E value);
+	public T onChange(Runnable onChange);
 }
 
 public abstract class AbstractUIBasicElement<T extends AbstractUIBasicElement<T>> implements UIElement<T> {
@@ -346,7 +347,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 	int selectedOption;
 	UIDropdownExpanded expanded;
 	boolean hovering;
-	Runnable onSelect;
+	Runnable onChange;
 
 	public AbstractUIDropdown(PApplet ctx) {
 		super(ctx);
@@ -359,7 +360,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		this.onKeyDown = () -> {this._onKeyDown();};
 		this.onHover = () -> {this._onHover();};
 		this.onLeave = () -> {this._onLeave();};
-		this.onSelect = () -> {};
+		this.onChange = () -> {};
 	}
 
 	private void _onDraw() {
@@ -412,8 +413,8 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 		hovering = false;
 	}
 
-	public T onSelect(Runnable onSelect) {
-		this.onSelect = onSelect;
+	public T onChange(Runnable onChange) {
+		this.onChange = onChange;
 		return (T) this;
 	}
 
@@ -429,7 +430,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 
 	public T value(E value) {
 		selectedOption = max(0, options.indexOf(value));
-		onSelect.run();
+		onChange.run();
 		return (T) this;
 	}
 
@@ -461,7 +462,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 
 		private void choose(int option) {
 			AbstractUIDropdown.this.selectedOption = option;
-			AbstractUIDropdown.this.onSelect.run();
+			AbstractUIDropdown.this.onChange.run();
 			AbstractUIDropdown.this.expanded = null;
 			AbstractUIDropdown.this.ui.closePopup();
 			AbstractUIDropdown.this.ui.focus(AbstractUIDropdown.this);
@@ -579,6 +580,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	int cursorBlinkStart;
 	ArrayList<Integer> lineOffsets;
 	boolean showCursor;
+	Runnable onChange;
 
 	public AbstractUITextField(PApplet ctx, int width, int lines) {
 		super(ctx);
@@ -591,7 +593,11 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.onClick = () -> {this._onClick();};
 		this.onKeyDown = () -> {this._onKeyDown();};
 		this.onFocus = () -> {this.showCursor = true;};
-		this.onUnfocus = () -> {this.showCursor = false;};
+		this.onUnfocus = () -> {
+			this.showCursor = false;
+			this.onChange.run();
+		};
+		this.onChange = () -> {};
 		this.cursorPos = -1;
 		this.lineNumbers = lines > 1 ? 0 : -1;
 		this.numberColW = 0;
@@ -764,6 +770,12 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	public T value(String text) {
 		this.text = text;
 		moveCursor(cursorPos);
+		this.onChange.run();
+		return (T) this;
+	}
+
+	public T onChange(Runnable onChange) {
+		this.onChange = onChange;
 		return (T) this;
 	}
 
@@ -936,12 +948,8 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 		.xywh(20, 0, 30, 20)
 		.alignX(CENTER)
 		.value(String.valueOf(this.value))
-		.onScroll(this.onScroll);
-		Runnable oldUnfocus = this.tField.onUnfocus;	//Hack, pls refactor
-		this.tField.onUnfocus(() -> {
-			oldUnfocus.run();
-			this.readFromText();
-		});
+		.onScroll(this.onScroll)
+		.onChange(() -> {this.readFromText();});
 		this.children.add(tField);
 	}
 
@@ -952,8 +960,9 @@ public abstract class AbstractUINumberInput<T extends AbstractUINumberInput<T>> 
 	}
 
 	private void readFromText() {
-		this.value(int(tField.value()));
-		tField.value(String.valueOf(this.value()));
+		int tValue = int(tField.value());
+		if (tValue != this.value())
+			this.value(int(tField.value()));
 	}
 
 	@Override
