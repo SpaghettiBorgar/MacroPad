@@ -1,5 +1,7 @@
 class ConfigureWindow extends PApplet {
 	private UI ui;
+	private UI.FormBuilder fb;
+	private HashMap<String, HoldsValue> propElems;
 	Action action;
 	Consumer<Action> callback;
 
@@ -18,26 +20,10 @@ class ConfigureWindow extends PApplet {
 		setupUI();
 	}
 
-	void setupUI() {
-		ui = new UI(this);
-		UI.FormBuilder fb = ui.new FormBuilder();
-
-		UITextField actionLabel = new UITextField(this, 100, 1)
-		.placeholder("<empty>")
-		.value(action.label);
-		fb.addRight(new UILabel(this, "Label"))
-		.addRight(actionLabel)
-		.addRow();
-		UIDropdown<Class<? extends Action>> actionType = new UIDropdown<Class<? extends Action>>(this)
-		.addOptions((Class<? extends Action>[]) ACTION_CLASSES)
-		.value(action.getClass());
-		fb.addRight(new UILabel(this, "Action Type"))
-		.addRight(actionType)
-		.addRow(16);
+	private HashMap<String, HoldsValue> addPropertyElements(Action action, UI.FormBuilder fb) {
 
 		LinkedHashMap<String, Class<?>> props = action.getProperties();
 		HashMap<String, HoldsValue> propElems = new HashMap<>();
-		propElems.put("label", actionLabel);
 
 		for(String prop : props.keySet()) {
 			if(prop == "label")
@@ -69,30 +55,64 @@ class ConfigureWindow extends PApplet {
 			fb.addRight((UIElement) e);
 			fb.addRow();
 		}
-		fb.addRow(8)
-		.addRight(new UIButton(this)
-		.wh(60, 20)
-		.label("Cancel")
-		.onRelease(()-> {
-			this.closeWindow();
-		}))
-		.addRight(0, new UIButton(this)
-		.wh(40, 20)
-		.label("OK")
-		.onRelease(()-> {
+		return propElems;
+	}
+
+	void setupUI() {
+		ui = new UI(this);
+		fb = ui.new FormBuilder();
+
+		UITextField actionLabel = new UITextField(this, 100, 1)
+		.placeholder("<empty>")
+		.value(action.label);
+
+		UIDropdown<Class<? extends Action>> actionType = new UIDropdown<Class<? extends Action>>(this)
+		.addOptions((Class<? extends Action>[]) ACTION_CLASSES);
+
+		actionType.onChange(() -> {
 			try {
 				action = actionType.value().getConstructor(KeyPad.class).newInstance(KeyPad.this);
-				for (String prop : propElems.keySet()) {
-					action.setProperty(prop, propElems.get(prop).value());
-					println(prop, action.getProperty(prop));
-				}
-				callback.accept(action);
-				this.closeWindow();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}))
-		.addRow();
+			ui = new UI(this);
+			fb = ui.new FormBuilder();
+			fb.addRight(new UILabel(this, "Label"))
+			.addRight(actionLabel)
+			.addRow();
+			fb.addRight(new UILabel(this, "Action Type"))
+			.addRight(actionType)
+			.addRow(16);
+			propElems = addPropertyElements(action, fb);
+			propElems.put("label", actionLabel);
+
+			fb.addRow(8)
+			.addRight(new UIButton(this)
+			.wh(60, 20)
+			.label("Cancel")
+			.onRelease(()-> {
+				this.closeWindow();
+			}))
+			.addRight(0, new UIButton(this)
+			.wh(40, 20)
+			.label("OK")
+			.onRelease(()-> {
+				try {
+					action = actionType.value().getConstructor(KeyPad.class).newInstance(KeyPad.this);
+					for (String prop : propElems.keySet()) {
+						action.setProperty(prop, propElems.get(prop).value());
+						println(prop, action.getProperty(prop));
+					}
+					callback.accept(action);
+					this.closeWindow();
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}))
+			.addRow();
+		});
+
+		actionType.value(action.getClass());
 	}
 
 	void draw() {
