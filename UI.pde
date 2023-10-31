@@ -386,16 +386,16 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 	}
 
 	private void _onScroll() {
-		selectedOption = options.isEmpty() ? 0 : clamp(selectedOption + ui.scrollY, 0, options.size() - 1);
+		changeSelectedOption(ui.scrollY);
 	}
 
 	private void _onKeyDown() {
 		switch(ctx.keyCode) {
 		case UP:
-			selectedOption = clamp(selectedOption - 1, 0, options.size() - 1);
+			changeSelectedOption(-1);
 			break;
 		case DOWN:
-			selectedOption = clamp(selectedOption + 1, 0, options.size() - 1);
+			changeSelectedOption(1);
 			break;
 		case ENTER:
 		case RETURN:
@@ -411,6 +411,11 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 
 	private void _onLeave() {
 		hovering = false;
+	}
+
+	private void changeSelectedOption(int n) {
+		selectedOption = options.isEmpty() ? 0 : clamp(selectedOption + n, 0, options.size() - 1);
+		this.onChange.run();
 	}
 
 	public T onChange(Runnable onChange) {
