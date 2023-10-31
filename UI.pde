@@ -425,6 +425,7 @@ public abstract class AbstractUIDropdown<T extends AbstractUIDropdown<T, E>, E> 
 
 	public T addOptions(E... options) {
 		this.options.addAll(Arrays.asList(options));
+		ctx.textSize(16);
 		float max = 0;
 		for(E o : options) {
 			max = max(max, ctx.textWidth(makeString(o)));
