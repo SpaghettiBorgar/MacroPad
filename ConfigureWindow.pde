@@ -2,12 +2,14 @@ class ConfigureWindow extends PApplet {
 	private UI ui;
 	private UI.FormBuilder fb;
 	private HashMap<String, HoldsValue> propElems;
+	Action origaction;
 	Action action;
 	Consumer<Action> callback;
 
 	public ConfigureWindow(Action action, Consumer<Action> callback) {
 		super();
-		this.action = action;
+		this.origaction = action;
+		this.action = this.origaction;
 		this.callback = callback;
 		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
@@ -70,10 +72,14 @@ class ConfigureWindow extends PApplet {
 		.addOptions((Class<? extends Action>[]) ACTION_CLASSES);
 
 		actionType.onChange(() -> {
-			try {
-				action = actionType.value().getConstructor(KeyPad.class).newInstance(KeyPad.this);
-			} catch (Exception e) {
-				e.printStackTrace();
+			if(actionType.value() == origaction.getClass())
+				action = origaction;
+			else {
+				try {
+					action = actionType.value().getConstructor(KeyPad.class).newInstance(KeyPad.this);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			ui = new UI(this);
 			fb = ui.new FormBuilder();
