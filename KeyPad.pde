@@ -1,11 +1,6 @@
 import processing.serial.*;
-import java.util.Map;
-import java.util.Stack;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.LinkedHashMap;
+
+import java.util.*;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
