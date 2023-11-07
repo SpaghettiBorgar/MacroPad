@@ -68,8 +68,8 @@ public class ActionMatrix {
 	void editAction(int row, int column) {
 		ConfigureWindow window = new ConfigureWindow(getAction(row, column), (action) -> {
 			addAction(curPage, row, column, action);
+			setupButtons();
 			storePages();
-			setupUI();
 		});
 	}
 
@@ -222,6 +222,7 @@ void setupUI() {
 			new PagesWindow(actions, () -> {
 				actions.goPage(clamp(actions.curPage, 0, actions.numPages() - 1));
 				setupButtons();
+				storePages();
 			});
 		}
 	}));

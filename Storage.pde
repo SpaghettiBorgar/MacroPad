@@ -2,7 +2,8 @@ void storePages() {
 	JSONObject json = new JSONObject();
 	JSONArray jpages = new JSONArray();
 
-	for(Action page[][] : actions.pages) {
+	for(int p = 0; p < actions.numPages(); p++) {
+		Action page[][] = actions.pages.get(p);
 		JSONObject jpage = new JSONObject();
 		JSONArray jrows = new JSONArray();
 
@@ -20,6 +21,7 @@ void storePages() {
 			jrows.append(jrow);
 		}
 		jpage.setJSONArray("buttons", jrows);
+		jpage.setString("name", actions.pageNames.get(p));
 		jpages.append(jpage);
 	}
 	json.setJSONArray("pages", jpages);
@@ -50,5 +52,6 @@ void restorePages() {
 				}
 			}
 		}
+		actions.pageNames.set(p, jpage.getString("name"));
 	}
 }
