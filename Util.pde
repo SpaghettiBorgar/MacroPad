@@ -12,6 +12,13 @@ public static <T extends Comparable<T>> T clamp(T val, T min, T max) {
 	}
 }
 
+public static <E> void swap(List<E> list, int i1, int i2) {
+	E e1 = list.get(i1);
+	E e2 = list.get(i2);
+	list.set(i1, e2);
+	list.set(i2, e1);
+}
+
 public static String[] getEnumNames(Class<? extends Enum<?>> e) {
 	return Arrays.stream(e.getEnumConstants()).map(Enum::name).toArray(String[]::new);
 }

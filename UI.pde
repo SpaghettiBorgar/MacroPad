@@ -1049,24 +1049,21 @@ public abstract class AbstractUIShuffleList<T extends AbstractUIShuffleList<T, E
 
 	public T addItems(E... items) {
 		for(E item : items) {
-			ListItem<E> newItem = new ListItem<>(item, this.items.size());
-			this.items.add(newItem);
-			ui.addElement(newItem);
+			addItem(item);
 		}
 		return (T) this;
 	}
 
-	public void swapItems(int i1, int i2) {
-		ListItem<E> e1 = items.get(i1);
-		ListItem<E> e2 = items.get(i2);
-		items.set(i1, e2);
-		items.set(i2, e1);
-		e1.setIndex(i2);
-		e2.setIndex(i1);
+	public ListItem<E> addItem(E item) {
+		ListItem<E> newItem = new ListItem<>(item, this.items.size());
+		this.items.add(newItem);
+		ui.addElement(newItem);
+		return newItem;
 	}
 
 	public void moveItem(int index, int n) {
-		swapItems(index, clamp(index + n, 0, items.size() - 1));
+		swap(items, index, clamp(index + n, 0, items.size() - 1));
+		updateIndices();
 	}
 
 	public void removeItem(int index) {
@@ -1081,10 +1078,23 @@ public abstract class AbstractUIShuffleList<T extends AbstractUIShuffleList<T, E
 		}
 	}
 
-	private class ListItem<E> extends AbstractUICompositeElement<ListItem<E>> {
+	public int numItems() {
+		return items.size();
+	}
+
+	public E getItem(int i) {
+		return items.get(i).value();
+	}
+
+	public void setItem(int i, E val) {
+		this.items.get(i).value(val);
+	}
+
+	class ListItem<E> extends AbstractUICompositeElement<ListItem<E>> {
 		E item;
 		int index;
 		AbstractUIShuffleList superthis;
+		Runnable onChange;
 
 		public ListItem(E item, int index) {
 			super(AbstractUIShuffleList.this.ctx);
@@ -1138,6 +1148,21 @@ public abstract class AbstractUIShuffleList<T extends AbstractUIShuffleList<T, E
 		public void setIndex(int index) {
 			this.index = index;
 			this.y(superthis.y() + index * 30);
+		}
+
+		public ListItem<E> value(E val) {
+			this.item = val;
+			this.onChange.run();
+			return this;
+		}
+
+		public E value() {
+			return this.item;
+		}
+
+		public ListItem<E> onChange(Runnable onChange) {
+			this.onChange = onChange;
+			return this;
 		}
 	}
 }
