@@ -18,6 +18,7 @@ boolean sw = false;
 ExecutorService threadpool = Executors.newCachedThreadPool();
 UI ui;
 int mouseScroll;
+UIGroup buttons;
 
 public class ActionMatrix {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
@@ -84,6 +85,7 @@ public class ActionMatrix {
 
 	public void changePage(int n) {
 		curPage = mod(curPage + n, numPages());
+		setupButtons();
 	}
 
 	public void nextPage() {
@@ -153,14 +155,9 @@ void setupPages() {
 	restorePages();
 }
 
-void setupUI() {
-	ui = new UI(this);
-
-	ui.addElement(new UIBasicElement(this)
-	.xywh(0, 0, width, height)
-	.onScroll(()-> {
-		actions.changePage(mouseScroll);
-	}));
+void setupButtons() {
+	buttons = new UIGroup(this);
+	ui.addElement(buttons);
 
 	for (int j = 0; j < PAGESIZE; j++) {
 		for (int i = 0; i < PAGESIZE; i++) {
@@ -168,7 +165,7 @@ void setupUI() {
 			final Action action = actions.getAction(j, i);
 			final int x = i * TILESIZE + 10, y = j * TILESIZE + 10, w = TILESIZE - 10, h = TILESIZE - 10;
 
-			ui.addElement(new UIBasicElement(this)
+			buttons.add(new UIBasicElement(this)
 			.xywh(x, y, w, h)
 			.onDraw(()-> {
 				if (action.triggered)
@@ -192,6 +189,18 @@ void setupUI() {
 			}));
 		}
 	}
+}
+
+void setupUI() {
+	ui = new UI(this);
+
+	ui.addElement(new UIBasicElement(this)
+	.xywh(0, 0, width, height)
+	.onScroll(()-> {
+		actions.changePage(mouseScroll);
+	}));
+
+	setupButtons();
 
 	ui.addElement(new UIBasicElement(this)
 	.xywh(0, TILESIZE * PAGESIZE + 10, TILESIZE * PAGESIZE + 10, 40)
@@ -202,11 +211,18 @@ void setupUI() {
 			fill(80);
 		textSize(32);
 		textAlign(CENTER, CENTER);
-		text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
+		String pageName = actions.pageNames.get(actions.curPage());
+		text((pageName == null ? "Page " : pageName) + " (" + (actions.curPage() + 1) + "/" + actions.numPages() + ")", 168, 344);
+	})
+	.onScroll(() -> {
+		actions.changePage(ui.scrollY);
 	})
 	.onRelease(() -> {
 		if(mouseButton == RIGHT) {
-			new PagesWindow(actions);
+			new PagesWindow(actions, () -> {
+				actions.goPage(clamp(actions.curPage, 0, actions.numPages() - 1));
+				setupButtons();
+			});
 		}
 	}));
 }

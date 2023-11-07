@@ -336,6 +336,56 @@ public abstract class AbstractUICompositeElement<T extends AbstractUICompositeEl
 
 }
 
+public class AbstractUIGroup<T extends AbstractUIGroup<T>> extends AbstractUICompositeElement<T> {
+	public AbstractUIGroup(PApplet ctx, UIElement... elements) {
+		super(ctx);
+		add(elements);
+	}
+
+	public T add(UIElement... elements) {
+		for(UIElement e : elements) {
+			children.add(e);
+			if(e.x() < this.x()) {
+				this.w(this.w() + (this.x() - e.x()));
+				this.x(e.x());
+			}
+			if(e.y() < this.y()) {
+				this.h(this.h() + (this.y() - e.y()));
+				this.y(e.y());
+			}
+			if(e.x() + e.w() > this.x() + this.w()) {
+				this.w(this.w() + (e.x() + e.w() - this.x() - this.w()));
+			}
+			if(e.y() + e.h() > this.y() + this.h()) {
+				this.h(this.h() + (e.y() + e.h() - this.y() - this.h()));
+			}
+		}
+		return (T) this;
+	}
+
+	@Override
+	public T x(int x) {
+		this.x = x;
+		return (T) this;
+	}
+
+	@Override
+	public T y(int y) {
+		this.y = y;
+		return (T) this;
+	}
+}
+
+public class UIGroup extends AbstractUIGroup<UIGroup> {
+	public UIGroup(PApplet ctx, UIElement... elements) {
+		super(ctx, elements);
+	}
+
+	public void foo() {
+
+	}
+}
+
 public class UIBasicElement extends AbstractUIBasicElement<UIBasicElement> {
 	public UIBasicElement(PApplet ctx) {
 		super(ctx);

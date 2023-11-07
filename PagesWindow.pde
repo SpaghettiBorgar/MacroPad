@@ -1,10 +1,12 @@
 class PagesWindow extends PApplet {
 	private UI ui;
 	ActionMatrix actions;
+	Runnable callback;
 
-	public PagesWindow(ActionMatrix actions) {
+	public PagesWindow(ActionMatrix actions, Runnable callback) {
 		super();
 		this.actions = actions;
+		this.callback = callback;
 		PApplet.runSketch(new String[] {this.getClass().getName()}, this);
 	}
 
@@ -33,7 +35,7 @@ class PagesWindow extends PApplet {
 		ui.addElement(new UIButton(this).label("Save").xywh(100, 290, 80, 30).onRelease(() -> {
 			ArrayList<Action[][]> newPages = new ArrayList<>(Collections.nCopies(pagelist.numItems(), null));
 			ArrayList<String> newPageNames = new ArrayList<>(Collections.nCopies(pagelist.numItems(), null));
-			for(UIShuffleList<String>.ListItem<String> item : mapping.keySet()) {
+			for(UIShuffleList<String>.ListItem<String> item : pagelist.items) {
 				int sourceIndex = mapping.get(item);
 				if(sourceIndex == -1) {
 					sourceIndex = actions.numPages();
@@ -45,6 +47,7 @@ class PagesWindow extends PApplet {
 			}
 			actions.pages = newPages;
 			actions.pageNames = newPageNames;
+			threadpool.submit(callback);
 			closeWindow();
 		}));
 	}
