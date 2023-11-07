@@ -21,21 +21,32 @@ int mouseScroll;
 
 public class ActionMatrix {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
+	ArrayList<String> pageNames = new ArrayList<String>();
 	private int curPage;
 
 	public ActionMatrix() {
 		curPage = 0;
 	}
 
+	public int addPage(String name) {
+		Action newPage[][] = new Action[PAGESIZE][PAGESIZE];
+		for (int y = 0; y < PAGESIZE; y++) {
+			for (int x = 0; x < PAGESIZE; x++) {
+				newPage[y][x] = new EmptyAction();
+			}
+		}
+		pages.add(newPage);
+		pageNames.add(name);
+		return pages.size() - 1;
+	}
+
+	public int addPage() {
+		return addPage("Page " + (pages.size() + 1));
+	}
+
 	private void touchPage(int page) {
 		while(page >= pages.size()) {
-			Action newPage[][] = new Action[PAGESIZE][PAGESIZE];
-			for (int y = 0; y < PAGESIZE; y++) {
-				for (int x = 0; x < PAGESIZE; x++) {
-					newPage[y][x] = new EmptyAction();
-				}
-			}
-			pages.add(newPage);
+			addPage();
 		}
 	}
 
@@ -192,6 +203,11 @@ void setupUI() {
 		textSize(32);
 		textAlign(CENTER, CENTER);
 		text("Page " + (actions.curPage() + 1) + "/" + actions.numPages(), 168, 344);
+	})
+	.onRelease(() -> {
+		if(mouseButton == RIGHT) {
+			new PagesWindow(actions);
+		}
 	}));
 }
 
