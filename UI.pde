@@ -1030,6 +1030,124 @@ public class UINumberInput extends AbstractUINumberInput<UINumberInput> {
 	}
 }
 
+public abstract class AbstractUIShuffleList<T extends AbstractUIShuffleList<T, E>, E> extends AbstractUIBasicElement<T> {
+	ArrayList<ListItem<E>> items;
+
+	public AbstractUIShuffleList(PApplet ctx) {
+		super(ctx);
+		this.items = new ArrayList<>();
+		this.onDraw = () -> {this._onDraw();};
+	}
+
+	private void _onDraw() {
+		ctx.fill(200);
+		ctx.rect(x, y, w, h);
+		for(ListItem<E> item : items) {
+			item.draw();
+		}
+	}
+
+	public T addItems(E... items) {
+		for(E item : items) {
+			ListItem<E> newItem = new ListItem<>(item, this.items.size());
+			this.items.add(newItem);
+			ui.addElement(newItem);
+		}
+		return (T) this;
+	}
+
+	public void swapItems(int i1, int i2) {
+		ListItem<E> e1 = items.get(i1);
+		ListItem<E> e2 = items.get(i2);
+		items.set(i1, e2);
+		items.set(i2, e1);
+		e1.setIndex(i2);
+		e2.setIndex(i1);
+	}
+
+	public void moveItem(int index, int n) {
+		swapItems(index, clamp(index + n, 0, items.size() - 1));
+	}
+
+	public void removeItem(int index) {
+		ui.removeElement(items.get(index));
+		items.remove(index);
+		updateIndices();
+	}
+
+	private void updateIndices() {
+		for(int i = 0; i < items.size(); i++) {
+			items.get(i).setIndex(i);
+		}
+	}
+
+	private class ListItem<E> extends AbstractUICompositeElement<ListItem<E>> {
+		E item;
+		int index;
+		AbstractUIShuffleList superthis;
+
+		public ListItem(E item, int index) {
+			super(AbstractUIShuffleList.this.ctx);
+			this.superthis = AbstractUIShuffleList.this;
+			this.item = item;
+			this.wh(superthis.w(), 30);
+			this.children.add(
+			new UITextField(ctx, 30, 1)
+			.xywh(0, 0, w - 90, 30)
+			.value(String.valueOf(item)));
+			this.children.add(
+			new UIButton(ctx)
+			.xywh(this.w - 90, 0, 30, 30)
+			.label("↑")
+			.onRelease(() -> this.moveUp())
+			);
+			this.children.add(
+			new UIButton(ctx)
+			.xywh(this.w - 60, 0, 30, 30)
+			.label("↓")
+			.onRelease(() -> this.moveDown())
+			);
+			this.children.add(
+			new UIButton(ctx)
+			.xywh(this.w - 30, 0, 30, 30)
+			.label("X")
+			.onRelease(() -> this.remove())
+			);
+			this.x(superthis.x());
+			setIndex(index);
+		}
+
+		@Override public void draw() {
+			ctx.fill(220);
+			ctx.rect(x, y, w, h);
+			super.draw();
+		}
+
+		public void moveUp() {
+			superthis.moveItem(index, -1);
+		}
+
+		public void moveDown() {
+			superthis.moveItem(index, 1);
+		}
+
+		public void remove() {
+			superthis.removeItem(index);
+		}
+
+		public void setIndex(int index) {
+			this.index = index;
+			this.y(superthis.y() + index * 30);
+		}
+	}
+}
+
+public class UIShuffleList<E> extends AbstractUIShuffleList<UIShuffleList<E>, E> {
+	public UIShuffleList(PApplet ctx) {
+		super(ctx);
+	}
+}
+
 public class UI {
 	PApplet ctx;
 	LinkedList<UIElement> elements;
