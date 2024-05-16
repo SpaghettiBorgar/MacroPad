@@ -644,6 +644,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		this.textSize = 16;
 		this.lines = lines;
 		this.textAlignX = LEFT;
+		this.text = "";
 		this.placeholder = "";
 		this.onDraw = () -> {this._onDraw();};
 		this.onClick = () -> {this._onClick();};
@@ -670,11 +671,10 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 	private void _onDraw() {
 		ctx.fill(240);
 		ctx.rect(x + numberColW, y, w - numberColW, h);
-		ctx.fill(text == null ? 120 : 0);
 		lineOffsets.clear();
 		setMainFont();
 
-		char chars[] = (text == null ? placeholder : text).toCharArray();
+		char chars[] = (isEmpty() ? placeholder : text).toCharArray();
 		int cumY = 0;
 		int curChar = 0;
 		int lineNumber = 0;
@@ -717,7 +717,7 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 				lineMarking = String.valueOf(lineNumber);
 			ctx.fill(lineMarking == "→" ? 100 : 20);
 			ctx.text(lineMarking, x + 1, y + 4 + cumY);
-			ctx.fill(0);
+			ctx.fill(isEmpty() ? 100 : 0);
 			ctx.text(curLine, x + 2 + numberColW, y + 4 + cumY, w - 4 - numberColW, h - 4);
 			cumY += textSize;
 		}
@@ -823,8 +823,12 @@ public abstract class AbstractUITextField<T extends AbstractUITextField<T>> exte
 		return this.text;
 	}
 
+	public boolean isEmpty() {
+		return text == "";
+	}
+
 	public T value(String text) {
-		this.text = text;
+		this.text = text == null ? "" : text;
 		moveCursor(cursorPos);
 		this.onChange.run();
 		return (T) this;
