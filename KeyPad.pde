@@ -9,6 +9,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
+import com.github.kwhat.jnativehook.GlobalScreen;
+import com.github.kwhat.jnativehook.NativeHookException;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
+
 public static final int PAGESIZE = 4;
 public static final int TILESIZE = 80;
 
@@ -19,6 +24,62 @@ ExecutorService threadpool = Executors.newCachedThreadPool();
 UI ui;
 int mouseScroll;
 UIGroup buttons;
+
+public class GlobalKeyListener implements NativeKeyListener {
+	final int[][] KEYMAP = {
+		{ 8,  9, 10, 11},
+		{22, 23, 24, 25},
+		{36, 37, 38, 39},
+		{50, 51, 52, 53}
+	};
+	boolean[][] latchmap = new boolean[4][4];
+
+	public void nativeKeyPressed(NativeKeyEvent e) {
+		System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+		System.out.println(e.getKeyCode());
+		System.out.println(e.getRawCode());
+		System.out.println(e.getKeyLocation());
+		if (e.getKeyCode() == NativeKeyEvent.VC_ESCAPE) {
+			try {
+				GlobalScreen.unregisterNativeHook();
+			} catch(NativeHookException ex) {
+				System.err.println("There was a problem unregistering the native hook.");
+				System.err.println(ex.getMessage());
+			}
+		} else {
+			int keyCode = e.getKeyCode();
+			for (int y = 0; y < 4; y++) {
+				for (int x = 0; x < 4; x++) {
+					if (KEYMAP[y][x] == keyCode) {
+						if (latchmap[y][x] == false) {
+							latchmap[y][x] = true;
+							actions.trigger(y, x);
+						}
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	public void nativeKeyReleased(NativeKeyEvent e) {
+		System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+		int keyCode = e.getKeyCode();
+		for (int y = 0; y < 4; y++) {
+			for (int x = 0; x < 4; x++) {
+				if (KEYMAP[y][x] == keyCode) {
+					latchmap[y][x] = false;
+					actions.untrigger(y, x);
+					return;
+				}
+			}
+		}
+	}
+
+	public void nativeKeyTyped(NativeKeyEvent e) {
+		System.out.println("Key Typed: " + e.getKeyText(e.getKeyCode()));
+	}
+}
 
 public class ActionMatrix {
 	ArrayList<Action[][]> pages = new ArrayList<Action[][]>();
@@ -71,6 +132,14 @@ public class ActionMatrix {
 			setupButtons();
 			storePages();
 		});
+	}
+
+	void trigger(int row, int column) {
+		getAction(row, column).trigger();
+	}
+
+	void untrigger(int row, int column) {
+		getAction(row, column).untrigger();
 	}
 
 	public int numPages() {
@@ -142,11 +211,25 @@ void setup() {
 
 	if(Serial.list().length >= 1) {
 		String portName = Serial.list()[0];
+		portName = "/dev/ttyUSB0";
 		println("Using serial port " + portName);
-		serialPort = new Serial(this, portName, 9600);
+    try {
+		  serialPort = new Serial(this, portName, 9600);
+    } catch(Exception e) {
+      e.printStackTrace();
+      serialPort = null;
+    }
 	} else {
 		println("No serial devices found!");
 	}
+
+	try {
+		GlobalScreen.registerNativeHook();
+	} catch (NativeHookException ex) {
+		System.err.println("There was a problem registering the native hook.");
+		System.err.println(ex.getMessage());
+	}
+	// GlobalScreen.addNativeKeyListener(new GlobalKeyListener());
 }
 
 void setupPages() {
